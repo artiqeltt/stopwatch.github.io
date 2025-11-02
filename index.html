@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Stopwatch - space to toggle</title>
+  <title>Stopwatch</title>
 
   <style>
     @font-face {
@@ -31,14 +31,13 @@
 
     .wrap {
       text-align: center;
-      transform: translateZ(0);
       padding: 10px;
     }
 
     .time {
       font-size: clamp(48px, 10vw, 140px);
-      letter-spacing: -0.03em;
       line-height: 0.9;
+      letter-spacing: -0.03em;
       font-variation-settings: "wdth" 120, "wght" 600, "slnt" 0, "CTRS" 0;
       font-feature-settings: "tnum" 1;
     }
@@ -46,8 +45,8 @@
     .hint {
       margin-top: 8px;
       font-size: 12px;
-      opacity: 0.6;
       font-weight: 600;
+      opacity: 0.6;
       letter-spacing: 0.04em;
       text-transform: uppercase;
     }
@@ -77,7 +76,7 @@
 
       function formatTime(ms){
         const totalMilliseconds = Math.floor(ms);
-        const milliseconds = totalMilliseconds % 1000; // 0–999
+        const milliseconds = totalMilliseconds % 1000;
         const totalSeconds = Math.floor(totalMilliseconds / 1000);
         const seconds = totalSeconds % 60;
         const minutes = Math.floor(totalSeconds / 60);
@@ -134,15 +133,6 @@
       }, {passive:false});
 
       render();
-
-      document.addEventListener('visibilitychange', function(){
-        if (document.hidden){
-          if (rafId){ cancelAnimationFrame(rafId); rafId = null; }
-        } else {
-          if (running && !rafId) tick();
-          else render();
-        }
-      });
     })();
   </script>
 </body>
