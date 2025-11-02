@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Stopwatch - space to toggle</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700&display=swap" rel="stylesheet">
+
+  <style>
+    html,body{
+      height:100%;
+      margin:0;
+      background:#000;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      user-select:none;
+      overflow:hidden;
+    }
+
+    body{
+      font-family: "BankGothic", "Bank Gothic", "BankGothic Md BT", "Orbitron", "Eurostile", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      height:100vh;
+    }
+
+    .wrap{
+      text-align:center;
+      transform: translateZ(0);
+      padding: 10px;
+    }
+
+    .time{
+      font-size: clamp(48px, 12vw, 160px);
+      letter-spacing: -0.03em; /* tighter spacing like round winning kill meme */
+      font-weight:700;
+      line-height:0.9; /* closer vertical spacing */
+    }
+
+    .hint{
+      margin-top:8px;
+      font-size:12px;
+      opacity:0.6;
+      font-weight:600;
+      letter-spacing:0.04em;
+    }
+
+    .running .time{
+      text-shadow: 0 4px 15px rgba(0,255,140,0.05), 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    ::selection{ background: rgba(255,255,255,0.08); }
+  </style>
+</head>
+<body>
+  <div class="wrap" id="wrap">
+    <div id="timeDisplay" class="time">0:00.000</div>
+    <div class="hint">press <strong>space</strong> to start/stop | <strong>r</strong> to reset</div>
+  </div>
+
+  <script>
+    (function(){
+      const display = document.getElementById('timeDisplay');
+      const wrap = document.getElementById('wrap');
+
+      let running = false;
+      let startTs = 0;
+      let elapsed = 0;
+      let rafId = null;
+
+      function formatTime(ms){
+        const totalMilliseconds = Math.floor(ms);
+        const milliseconds = totalMilliseconds % 1000; // 3 decimal places
+        const totalSeconds = Math.floor(totalMilliseconds / 1000);
+        const seconds = totalSeconds % 60;
+        const minutes = Math.floor(totalSeconds / 60);
+        return minutes + ":" + String(seconds).padStart(2, '0') + "." + String(milliseconds).padStart(3, '0');
+      }
+
+      function render(){
+        const now = performance.now();
+        const currentElapsed = elapsed + (running ? Math.floor(now - startTs) : 0);
+        display.textContent = formatTime(currentElapsed);
+      }
+
+      function tick(){
+        render();
+        rafId = requestAnimationFrame(tick);
+      }
+
+      function start(){
+        if (running) return;
+        running = true;
+        startTs = performance.now();
+        wrap.classList.add('running');
+        if (!rafId) tick();
+      }
+
+      function stop(){
+        if (!running) return;
+        const now = performance.now();
+        elapsed += Math.floor(now - startTs);
+        running = false;
+        wrap.classList.remove('running');
+        render();
+      }
+
+      function reset(){
+        running = false;
+        elapsed = 0;
+        wrap.classList.remove('running');
+        render();
+      }
+
+      function toggle(){
+        if (running) stop();
+        else start();
+      }
+
+      window.addEventListener('keydown', function(e){
+        if (e.code === 'Space' || e.keyCode === 32){
+          e.preventDefault();
+          toggle();
+        } else if (e.key.toLowerCase() === 'r') {
+          e.preventDefault();
+          reset();
+        }
+      }, {passive:false});
+
+      render();
+
+      document.addEventListener('visibilitychange', function(){
+        if (document.hidden){
+          if (rafId){ cancelAnimationFrame(rafId); rafId = null; }
+        } else {
+          if (running && !rafId) tick();
+          else render();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
