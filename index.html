@@ -5,60 +5,64 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Stopwatch - space to toggle</title>
 
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700&display=swap" rel="stylesheet">
-
   <style>
-    html,body{
-      height:100%;
-      margin:0;
-      background:#000;
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
-      user-select:none;
-      overflow:hidden;
+    @font-face {
+      font-family: "Science Gothic";
+      src: url("fonts/ScienceGothic[CTRS,slnt,wdth,wght].ttf") format("truetype-variations");
+      font-weight: 100 900;
+      font-stretch: 50% 200%;
+      font-style: normal;
     }
 
-    body{
-      font-family: "BankGothic", "Bank Gothic", "BankGothic Md BT", "Orbitron", "Eurostile", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      color:#fff;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      height:100vh;
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: #000;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Science Gothic", system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      user-select: none;
+      overflow: hidden;
     }
 
-    .wrap{
-      text-align:center;
+    .wrap {
+      text-align: center;
       transform: translateZ(0);
       padding: 10px;
     }
 
-    .time{
-      font-size: clamp(48px, 12vw, 160px);
-      letter-spacing: -0.03em; /* tighter spacing like round winning kill meme */
-      font-weight:700;
-      line-height:0.9; /* closer vertical spacing */
+    .time {
+      font-size: clamp(48px, 10vw, 140px);
+      letter-spacing: -0.03em;
+      line-height: 0.9;
+      font-variation-settings: "wdth" 120, "wght" 600, "slnt" 0, "CTRS" 0;
+      font-feature-settings: "tnum" 1;
     }
 
-    .hint{
-      margin-top:8px;
-      font-size:12px;
-      opacity:0.6;
-      font-weight:600;
-      letter-spacing:0.04em;
+    .hint {
+      margin-top: 8px;
+      font-size: 12px;
+      opacity: 0.6;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
     }
 
-    .running .time{
+    .running .time {
       text-shadow: 0 4px 15px rgba(0,255,140,0.05), 0 1px 0 rgba(255,255,255,0.03);
     }
 
-    ::selection{ background: rgba(255,255,255,0.08); }
+    ::selection { background: rgba(255,255,255,0.08); }
   </style>
 </head>
 <body>
   <div class="wrap" id="wrap">
     <div id="timeDisplay" class="time">0:00.000</div>
-    <div class="hint">press <strong>space</strong> to start/stop | <strong>r</strong> to reset</div>
+    <div class="hint">PRESS SPACE TO START/STOP | R TO RESET</div>
   </div>
 
   <script>
@@ -73,11 +77,11 @@
 
       function formatTime(ms){
         const totalMilliseconds = Math.floor(ms);
-        const milliseconds = totalMilliseconds % 1000; // 3 decimal places
+        const milliseconds = totalMilliseconds % 1000; // 0–999
         const totalSeconds = Math.floor(totalMilliseconds / 1000);
         const seconds = totalSeconds % 60;
         const minutes = Math.floor(totalSeconds / 60);
-        return minutes + ":" + String(seconds).padStart(2, '0') + "." + String(milliseconds).padStart(3, '0');
+        return `${minutes}:${String(seconds).padStart(2,'0')}.${String(milliseconds).padStart(3,'0')}`;
       }
 
       function render(){
@@ -116,12 +120,11 @@
       }
 
       function toggle(){
-        if (running) stop();
-        else start();
+        running ? stop() : start();
       }
 
       window.addEventListener('keydown', function(e){
-        if (e.code === 'Space' || e.keyCode === 32){
+        if (e.code === 'Space'){
           e.preventDefault();
           toggle();
         } else if (e.key.toLowerCase() === 'r') {
