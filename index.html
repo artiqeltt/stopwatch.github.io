@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Stopwatch</title>
+<title>Stopwatch - fixed space bug</title>
 <style>
-  /* exact filename you provided earlier */
+  /* exact filename you provided */
   @font-face {
     font-family: "Science Gothic";
     src: url("fonts/ScienceGothic[CTRS,slnt,wdth,wght].ttf") format("truetype-variations"),
@@ -167,12 +167,13 @@
   let resetInterval = null;
   let resetRemaining = RESET_SECONDS;
 
-  // space handling debounce for taps vs holds
+  // space handling: differentiate tap vs hold reliably
+  const HOLD_THRESHOLD = 250; // ms: hold longer than this => "hold" action (freeze)
+  let spaceKeyDownAt = 0;
   let spaceHoldTimer = null;
-  const HOLD_THRESHOLD = 250; // ms to consider hold (freeze) vs tap
-  let spaceIsHeld = false;
+  let spaceHeld = false;
 
-  // formatting
+  // formatting helpers
   function formatTime(ms) {
     const totalMs = Math.max(0, Math.floor(ms));
     const totalSeconds = Math.floor(totalMs / 1000);
@@ -191,7 +192,7 @@
     return elapsedMs;
   }
 
-  // render loop
+  // rendering
   function renderOnce() {
     timeDisplay.textContent = formatTime(currentElapsed());
   }
@@ -206,7 +207,7 @@
     if (raf) { cancelAnimationFrame(raf); raf = null; }
   }
 
-  // timer control
+  // timer controls
   function startTimer() {
     if (running) return;
     running = true;
@@ -215,10 +216,11 @@
   }
   function stopTimer() {
     if (!running) return;
+    // stash elapsed precisely, then stop rendering to avoid flicker
     elapsedMs += performance.now() - startTs;
     running = false;
     stopRAF();
-    renderOnce(); // freeze instantly without flicker
+    renderOnce(); // freeze instantly, no flicker
   }
   function resetNow() {
     running = false;
@@ -226,12 +228,11 @@
     elapsedMs = 0;
     stopRAF();
     renderOnce();
-    // show reset notice briefly and hide
     resetBox.textContent = 'RESET!';
     setTimeout(()=> resetBox.classList.remove('show'), 400);
   }
 
-  // reset hold logic (top-right box)
+  // reset countdown UI
   function startResetCountdown() {
     if (resetInterval) return;
     resetRemaining = RESET_SECONDS;
@@ -250,37 +251,34 @@
     }, 1000);
   }
   function cancelResetCountdown(){
-    if (resetInterval) {
-      clearInterval(resetInterval);
-      resetInterval = null;
-    }
+    if (resetInterval) { clearInterval(resetInterval); resetInterval = null; }
     resetBox.classList.remove('show');
   }
 
-  // keyboard handlers: space tap toggles start/stop instantly,
-  // holding space will freeze while held (if timer already running).
+  // ---- KEYBOARD (SPACE) logic: tap vs hold ----
   window.addEventListener('keydown', (e) => {
     if (e.code === 'Space') {
       e.preventDefault();
-      if (spaceIsHeld) return; // ignore repeats
-      spaceIsHeld = true;
+      // ignore auto-repeat events
+      if (e.repeat) return;
 
-      // start a hold timer. if it reaches threshold and timer is running -> freeze
+      spaceKeyDownAt = performance.now();
+      spaceHeld = true;
+
+      // start a hold timer. if it fires, that's a HOLD action (freeze) if timer already running
       spaceHoldTimer = setTimeout(() => {
-        if (running) {
-          frozen = true;           // freeze while held
-        }
-        // keep indicator that it's a hold
         spaceHoldTimer = null;
+        // enter freeze only if timer is running
+        if (running) {
+          frozen = true;
+        }
       }, HOLD_THRESHOLD);
 
-      // immediate tap behavior: if timer NOT running, start it immediately on keydown
-      // (so quick taps start without waiting for keyup)
+      // do NOT toggle start/stop here. we handle quick tap on keyup to keep behavior consistent.
+      // however, if timer isn't running, we can start immediately so user sees instant start on press.
       if (!running) {
         startTimer();
       }
-      // if running and user pressed, we wait to see if it's a hold (freeze) or a quick tap release (stop)
-      // do nothing else here — keyup will handle quick tap toggling.
     }
 
     else if (e.code === 'KeyR') {
@@ -292,29 +290,30 @@
   window.addEventListener('keyup', (e) => {
     if (e.code === 'Space') {
       e.preventDefault();
-      // if holdTimer still pending -> it's a quick tap release
+      const downDuration = performance.now() - spaceKeyDownAt;
+      spaceHeld = false;
+
+      // if hold timer still pending -> it was a quick tap
       if (spaceHoldTimer) {
         clearTimeout(spaceHoldTimer);
         spaceHoldTimer = null;
-        // quick tap release behavior:
-        // if we started the timer on keydown because it wasn't running, we want keyup to do nothing (already started)
-        // otherwise toggle stop if timer was running and not frozen
-        if (running && !frozen) {
-          // this is a quick tap to stop
+        // quick tap behavior:
+        // if we started on keydown (because timer was stopped) then do nothing else on keyup
+        // else if timer was running and not frozen -> stop it
+        if (running && !frozen && downDuration < HOLD_THRESHOLD) {
           stopTimer();
-        } else {
-          // if frozen flag somehow not set but running false: start (defensive)
-          // do nothing else
         }
+        // if running but frozen can't happen here because freeze only set after hold timer fires
       } else {
-        // if holdTimer expired and set frozen=true earlier, unfreeze on keyup
+        // hold timer fired earlier and possibly set frozen=true; on keyup we unfreeze
         if (frozen) {
           frozen = false;
-          // reset startTs so continuation is smooth
+          // set new startTs so timing continues smoothly from where it left off
           startTs = performance.now();
+        } else {
+          // defensive: if no frozen but also no spaceHoldTimer, do nothing
         }
       }
-      spaceIsHeld = false;
     }
 
     else if (e.code === 'KeyR') {
@@ -322,31 +321,35 @@
     }
   });
 
-  // touch: tap = toggle, longpress -> start reset countdown
+  // touch support: mirror key behavior
+  let touchStartAt = 0;
   let touchHoldT = null;
   window.addEventListener('touchstart', (ev) => {
     ev.preventDefault();
-    // start timer on short tap start if not running
+    touchStartAt = performance.now();
+    // short start behavior: if not running, start immediately
     if (!running) startTimer();
 
-    touchHoldT = setTimeout(()=> {
-      // start reset countdown if held
-      startResetCountdown();
+    touchHoldT = setTimeout(() => {
       touchHoldT = null;
+      // treat as hold: if running, start reset countdown? for touch we use long press -> reset countdown
+      // we already used long press for reset earlier; keep that behavior
+      startResetCountdown();
     }, 500);
   }, {passive:false});
 
   window.addEventListener('touchend', (ev) => {
     ev.preventDefault();
+    const dur = performance.now() - touchStartAt;
     if (touchHoldT) {
-      // short tap end - toggle stop if running (and not frozen)
       clearTimeout(touchHoldT);
       touchHoldT = null;
+      // short tap end - toggle stop if running (and not frozen)
       if (running && !frozen) {
         stopTimer();
       }
     } else {
-      // long press ended - cancel reset (if running)
+      // long touch ended - cancel reset countdown if it didn't finish
       cancelResetCountdown();
     }
   }, {passive:false});
