@@ -22,20 +22,18 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-direction: column;
     font-family: "Science Gothic", system-ui, sans-serif;
-    -webkit-font-smoothing: antialiased;
     overflow: hidden;
     user-select: none;
-  }
-
-  .wrap {
-    text-align: center;
   }
 
   .time {
     font-size: clamp(48px, 10vw, 140px);
     font-variation-settings: "wdth" 120, "wght" 400;
-    letter-spacing: -0.03em;
+    letter-spacing: 0em;
+    line-height: 0.9;
+    font-feature-settings: "tnum" 1, "lnum" 1; /* tabular + lining numbers */
   }
 
   .hint {
@@ -60,7 +58,6 @@
     transition: opacity 0.4s ease;
     pointer-events: none;
   }
-
   .reset-box.show { opacity: 1; }
 
   .settings-btn {
@@ -78,22 +75,19 @@
     cursor: pointer;
     transition: background 0.2s;
   }
-
   .settings-btn:hover { background: rgba(255,255,255,0.2); }
 
   .settings-box {
     position: fixed;
-    bottom: -120px;
+    bottom: -130px;
     right: 20px;
     background: rgba(255,255,255,0.1);
-    backdrop-filter: blur(8px);
     border-radius: 16px;
     padding: 12px;
     width: 160px;
     text-align: center;
     transition: bottom 0.3s ease;
   }
-
   .settings-box.show {
     bottom: 80px;
   }
@@ -105,24 +99,19 @@
     cursor: pointer;
     transition: background 0.2s;
   }
-
   .option:hover {
     background: rgba(255,255,255,0.2);
   }
-
   .option.active {
     background: rgba(255,255,255,0.3);
   }
-
 </style>
 </head>
 <body>
   <div class="reset-box" id="resetBox">Resetting in 3</div>
 
-  <div class="wrap" id="wrap">
-    <div id="timeDisplay" class="time">0:00.0</div>
-    <div class="hint">PRESS SPACE OR TAP TO START/STOP | HOLD R OR HOLD TAP TO RESET</div>
-  </div>
+  <div id="timeDisplay" class="time">0:00.0</div>
+  <div class="hint">PRESS SPACE OR TAP TO START/STOP | HOLD R OR TAP HOLD TO RESET</div>
 
   <div class="settings-btn" id="settingsBtn">⚙️</div>
   <div class="settings-box" id="settingsBox">
@@ -134,7 +123,6 @@
   <script>
     (function(){
       const display = document.getElementById('timeDisplay');
-      const wrap = document.getElementById('wrap');
       const resetBox = document.getElementById('resetBox');
       const settingsBtn = document.getElementById('settingsBtn');
       const settingsBox = document.getElementById('settingsBox');
@@ -222,7 +210,6 @@
         resetActive = false;
       }
 
-      // keyboard
       window.addEventListener('keydown', e=>{
         if (e.code === 'Space'){ e.preventDefault(); toggle(); }
         else if (e.key.toLowerCase() === 'r'){ startResetCountdown(); }
@@ -231,7 +218,6 @@
         if (e.key.toLowerCase() === 'r') cancelResetCountdown();
       });
 
-      // touch
       let touchTimeout = null;
       let touchStartTime = 0;
       window.addEventListener('touchstart', e=>{
@@ -247,7 +233,6 @@
         clearTimeout(touchTimeout);
       }, {passive:false});
 
-      // settings
       settingsBtn.onclick = ()=>{
         settingsBox.classList.toggle('show');
       };
@@ -262,7 +247,6 @@
         };
       });
 
-      // default active
       options[0].classList.add('active');
       render();
     })();
