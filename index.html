@@ -80,7 +80,7 @@
   </style>
 </head>
 <body>
-  <div class="reset-box" id="resetBox">Resetting in 5</div>
+  <div class="reset-box" id="resetBox">Resetting in 3</div>
 
   <div class="wrap" id="wrap">
     <div id="timeDisplay" class="time">0:00.000</div>
@@ -104,11 +104,10 @@
 
       function formatTime(ms){
         const totalMilliseconds = Math.floor(ms);
-        const milliseconds = totalMilliseconds % 1000;
-        const totalSeconds = Math.floor(totalMilliseconds / 1000);
-        const seconds = totalSeconds % 60;
+        const totalSeconds = totalMilliseconds / 1000;
         const minutes = Math.floor(totalSeconds / 60);
-        return `${minutes}:${String(seconds).padStart(2,'0')}.${String(milliseconds).padStart(3,'0')}`;
+        const seconds = (totalSeconds % 60).toFixed(3);
+        return `${minutes}:${seconds.padStart(6,'0')}`;
       }
 
       function render(){
@@ -154,7 +153,7 @@
       function startResetCountdown(){
         if (resetActive) return;
         resetActive = true;
-        resetCountdown = 5;
+        resetCountdown = 3;
         resetBox.textContent = `Resetting in ${resetCountdown}`;
         resetBox.classList.add('show');
 
@@ -207,13 +206,13 @@
         touchStartTime = Date.now();
         touchTimeout = setTimeout(()=>{
           startResetCountdown();
-        }, 500); // start showing after 0.5s hold
+        }, 500);
       }, {passive:false});
 
       window.addEventListener('touchend', function(e){
         e.preventDefault();
         const duration = Date.now() - touchStartTime;
-        if (duration < 500) toggle(); // short tap toggles
+        if (duration < 500) toggle();
         cancelResetCountdown();
         clearTimeout(touchTimeout);
       }, {passive:false});
