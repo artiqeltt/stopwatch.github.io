@@ -1,376 +1,267 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Stopwatch - fixed space bug</title>
-<style>
-  /* exact filename you provided */
-  @font-face {
-    font-family: "Science Gothic";
-    src: url("fonts/ScienceGothic[CTRS,slnt,wdth,wght].ttf") format("truetype-variations"),
-         url("fonts/ScienceGothic[CTRS,slnt,wdth,wght].ttf") format("truetype");
-    font-weight: 100 900;
-    font-style: normal;
-    font-display: swap;
-  }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Stopwatch</title>
 
-  :root{
-    --bg:#000;
-    --fg:#fff;
-    --panel: rgba(255,255,255,0.08);
-    --muted: rgba(255,255,255,0.75);
-  }
+  <style>
+    @font-face {
+      font-family: "Science Gothic";
+      src: url("fonts/ScienceGothic[CTRS,slnt,wdth,wght].ttf") format("truetype-variations");
+      font-weight: 100 900;
+      font-stretch: 50% 200%;
+      font-style: normal;
+    }
 
-  html,body{
-    height:100%;
-    margin:0;
-    background:var(--bg);
-    color:var(--fg);
-    font-family: "Science Gothic", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    text-transform: uppercase;
-    -webkit-font-smoothing:antialiased;
-    -moz-osx-font-smoothing:grayscale;
-    user-select:none;
-    overflow:hidden;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    flex-direction:column;
-  }
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: #000;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      font-family: "Science Gothic", system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      user-select: none;
+      overflow: hidden;
+    }
 
-  /* main time - tight MW2 style */
-  .time {
-    font-variation-settings: "wght" 350, "wdth" 120;
-    font-feature-settings: "tnum" 1, "lnum" 1;
-    font-variant-numeric: tabular-nums;
-    font-size: clamp(72px, 13vw, 160px);
-    line-height:0.9;
-    letter-spacing: -0.06em; /* tighter like killcam */
-    text-align:center;
-    margin:0;
-  }
+    .wrap {
+      text-align: center;
+      transform: translateZ(0);
+      padding: 10px;
+    }
 
-  .hint {
-    margin-top:8px;
-    font-size:12px;               /* smaller like you wanted */
-    color:var(--muted);
-    letter-spacing:0.12em;
-    text-align:center;
-  }
+    .time {
+      font-size: clamp(48px, 11vw, 150px);
+      letter-spacing: -0.04em;
+      line-height: 0.9;
+      font-variation-settings: "wdth" 120, "wght" 350;
+      font-feature-settings: "tnum" 1;
+    }
 
-  /* reset box top-right */
-  .reset-box{
-    position:fixed;
-    top:20px;
-    right:20px;
-    background:var(--panel);
-    border-radius:12px;
-    padding:10px 14px;
-    font-size:14px;
-    font-weight:600;
-    letter-spacing:0.04em;
-    text-transform:uppercase;
-    opacity:0;
-    transition: opacity .35s ease, transform .25s ease;
-    pointer-events:none;
-  }
-  .reset-box.show{ opacity:1; }
+    .hint {
+      margin-top: 10px;
+      font-size: 11px;
+      opacity: 0.7;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      font-family: "Science Gothic", system-ui, sans-serif;
+    }
 
-  /* settings icon bottom-right */
-  .settings-btn {
-    position:fixed;
-    bottom:16px;
-    right:16px;
-    width:44px;
-    height:44px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background:var(--panel);
-    border-radius:999px;
-    cursor:pointer;
-    z-index:120;
-    font-size:20px;
-  }
+    .running .time {
+      text-shadow: 0 4px 15px rgba(0,255,140,0.08);
+    }
 
-  /* slide-up menu */
-  .settings-menu {
-    position:fixed;
-    right:16px;
-    bottom:70px;
-    width:170px;
-    border-radius:12px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
-    backdrop-filter: blur(6px);
-    padding:8px;
-    box-sizing:border-box;
-    transform: translateY(18px);
-    opacity:0;
-    transition: transform .22s ease, opacity .22s ease;
-    z-index:110;
-  }
-  .settings-menu.open {
-    transform: translateY(0);
-    opacity:1;
-  }
+    .reset-box {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+    }
 
-  .settings-option {
-    display:flex;
-    align-items:center;
-    gap:10px;
-    padding:8px 6px;
-    cursor:pointer;
-    user-select:none;
-  }
-  .settings-option input { accent-color:#fff; }
-  .settings-option label { font-size:13px; }
+    .reset-box.show {
+      opacity: 1;
+    }
 
-  ::selection { background: rgba(255,255,255,0.06); }
-</style>
+    .settings {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      cursor: pointer;
+      font-size: 20px;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+    }
+
+    .settings:hover {
+      opacity: 1;
+    }
+
+    .settings-menu {
+      position: fixed;
+      bottom: 60px;
+      right: 20px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 10px 16px;
+      display: none;
+      text-align: left;
+    }
+
+    .settings-menu.show {
+      display: block;
+    }
+
+    .settings-menu label {
+      display: block;
+      font-size: 12px;
+      padding: 4px 0;
+      cursor: pointer;
+      font-family: "Science Gothic", system-ui, sans-serif;
+    }
+
+    ::selection { background: rgba(255,255,255,0.08); }
+  </style>
 </head>
 <body>
-  <div id="resetBox" class="reset-box">RESETTING IN 3</div>
-
-  <div class="wrap">
-    <div id="timeDisplay" class="time">00:00.0</div>
-    <div class="hint" id="hint">PRESS SPACE TO START/STOP | PRESS AND HOLD R TO RESET</div>
+  <div class="wrap" id="wrap">
+    <div id="timeDisplay" class="time">0:00.0</div>
+    <div class="hint">PRESS SPACE TO START | STOP | R TO RESET</div>
   </div>
 
-  <div id="settingsBtn" class="settings-btn" title="Settings">⚙️</div>
-
-  <div id="settingsMenu" class="settings-menu" aria-hidden="true">
-    <div class="settings-option"><input type="radio" name="dec" id="d1" value="1" checked><label for="d1">1 DECIMAL</label></div>
-    <div class="settings-option"><input type="radio" name="dec" id="d2" value="2"><label for="d2">2 DECIMALS</label></div>
-    <div class="settings-option"><input type="radio" name="dec" id="d3" value="3"><label for="d3">3 DECIMALS</label></div>
+  <div id="resetBox" class="reset-box"></div>
+  <div class="settings" id="settingsBtn">⚙️</div>
+  <div class="settings-menu" id="settingsMenu">
+    <label><input type="radio" name="decimals" value="1" checked> 1 DECIMAL</label>
+    <label><input type="radio" name="decimals" value="2"> 2 DECIMALS</label>
+    <label><input type="radio" name="decimals" value="3"> 3 DECIMALS</label>
   </div>
 
-<script>
-(() => {
-  // elements
-  const timeDisplay = document.getElementById('timeDisplay');
-  const resetBox = document.getElementById('resetBox');
-  const settingsBtn = document.getElementById('settingsBtn');
-  const settingsMenu = document.getElementById('settingsMenu');
-  const radios = document.querySelectorAll('input[name="dec"]');
+  <script>
+    (function(){
+      const display = document.getElementById('timeDisplay');
+      const wrap = document.getElementById('wrap');
+      const resetBox = document.getElementById('resetBox');
+      const settingsBtn = document.getElementById('settingsBtn');
+      const settingsMenu = document.getElementById('settingsMenu');
+      const decimalRadios = document.querySelectorAll('input[name="decimals"]');
 
-  // state
-  let running = false;
-  let frozen = false;
-  let startTs = 0;      // performance.now() when timer started
-  let elapsedMs = 0;    // accumulated milliseconds when stopped
-  let raf = null;
-  let decimals = 1;
+      let running = false;
+      let startTs = 0;
+      let elapsed = 0;
+      let rafId = null;
+      let decimals = 1;
+      let resetTimer = null;
+      let resetHoldTime = 0;
 
-  // reset hold
-  const RESET_SECONDS = 3;
-  let resetInterval = null;
-  let resetRemaining = RESET_SECONDS;
-
-  // space handling: differentiate tap vs hold reliably
-  const HOLD_THRESHOLD = 250; // ms: hold longer than this => "hold" action (freeze)
-  let spaceKeyDownAt = 0;
-  let spaceHoldTimer = null;
-  let spaceHeld = false;
-
-  // formatting helpers
-  function formatTime(ms) {
-    const totalMs = Math.max(0, Math.floor(ms));
-    const totalSeconds = Math.floor(totalMs / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    const fractionMs = totalMs % 1000;
-    const scaled = Math.floor(fractionMs / Math.pow(10, 3 - decimals));
-    const fracStr = String(scaled).padStart(decimals, '0');
-    return `${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}.${fracStr}`;
-  }
-
-  function currentElapsed() {
-    if (running && !frozen) {
-      return elapsedMs + (performance.now() - startTs);
-    }
-    return elapsedMs;
-  }
-
-  // rendering
-  function renderOnce() {
-    timeDisplay.textContent = formatTime(currentElapsed());
-  }
-  function renderLoop() {
-    renderOnce();
-    raf = requestAnimationFrame(renderLoop);
-  }
-  function ensureRAF() {
-    if (!raf) raf = requestAnimationFrame(renderLoop);
-  }
-  function stopRAF() {
-    if (raf) { cancelAnimationFrame(raf); raf = null; }
-  }
-
-  // timer controls
-  function startTimer() {
-    if (running) return;
-    running = true;
-    startTs = performance.now();
-    ensureRAF();
-  }
-  function stopTimer() {
-    if (!running) return;
-    // stash elapsed precisely, then stop rendering to avoid flicker
-    elapsedMs += performance.now() - startTs;
-    running = false;
-    stopRAF();
-    renderOnce(); // freeze instantly, no flicker
-  }
-  function resetNow() {
-    running = false;
-    frozen = false;
-    elapsedMs = 0;
-    stopRAF();
-    renderOnce();
-    resetBox.textContent = 'RESET!';
-    setTimeout(()=> resetBox.classList.remove('show'), 400);
-  }
-
-  // reset countdown UI
-  function startResetCountdown() {
-    if (resetInterval) return;
-    resetRemaining = RESET_SECONDS;
-    resetBox.textContent = `RESETTING IN ${resetRemaining}`;
-    resetBox.classList.add('show');
-    ensureRAF();
-    resetInterval = setInterval(()=>{
-      resetRemaining--;
-      if (resetRemaining > 0) {
-        resetBox.textContent = `RESETTING IN ${resetRemaining}`;
-      } else {
-        clearInterval(resetInterval);
-        resetInterval = null;
-        resetNow();
+      function formatTime(ms){
+        const totalMilliseconds = Math.floor(ms);
+        const msPart = Math.floor((totalMilliseconds % 1000) / Math.pow(10, 3 - decimals));
+        const totalSeconds = Math.floor(totalMilliseconds / 1000);
+        const seconds = totalSeconds % 60;
+        const minutes = Math.floor(totalSeconds / 60);
+        return `${minutes}:${String(seconds).padStart(2,'0')}.${String(msPart).padStart(decimals,'0')}`;
       }
-    }, 1000);
-  }
-  function cancelResetCountdown(){
-    if (resetInterval) { clearInterval(resetInterval); resetInterval = null; }
-    resetBox.classList.remove('show');
-  }
 
-  // ---- KEYBOARD (SPACE) logic: tap vs hold ----
-  window.addEventListener('keydown', (e) => {
-    if (e.code === 'Space') {
-      e.preventDefault();
-      // ignore auto-repeat events
-      if (e.repeat) return;
+      function render(){
+        const now = performance.now();
+        const currentElapsed = elapsed + (running ? Math.floor(now - startTs) : 0);
+        display.textContent = formatTime(currentElapsed);
+      }
 
-      spaceKeyDownAt = performance.now();
-      spaceHeld = true;
+      function tick(){
+        render();
+        rafId = requestAnimationFrame(tick);
+      }
 
-      // start a hold timer. if it fires, that's a HOLD action (freeze) if timer already running
-      spaceHoldTimer = setTimeout(() => {
-        spaceHoldTimer = null;
-        // enter freeze only if timer is running
-        if (running) {
-          frozen = true;
+      function start(){
+        if (running) return;
+        running = true;
+        startTs = performance.now();
+        wrap.classList.add('running');
+        if (!rafId) tick();
+      }
+
+      function stop(){
+        if (!running) return;
+        const now = performance.now();
+        elapsed += Math.floor(now - startTs);
+        running = false;
+        wrap.classList.remove('running');
+        render();
+      }
+
+      function reset(){
+        running = false;
+        elapsed = 0;
+        wrap.classList.remove('running');
+        render();
+      }
+
+      function toggle(){
+        running ? stop() : start();
+      }
+
+      function showResetCountdown(){
+        let countdown = 3;
+        resetBox.textContent = `RESETTING IN ${countdown}`;
+        resetBox.classList.add('show');
+        resetTimer = setInterval(()=>{
+          countdown--;
+          if (countdown > 0) {
+            resetBox.textContent = `RESETTING IN ${countdown}`;
+          } else {
+            clearInterval(resetTimer);
+            reset();
+            resetBox.textContent = 'RESET COMPLETE';
+            setTimeout(()=>resetBox.classList.remove('show'), 600);
+          }
+        },1000);
+      }
+
+      window.addEventListener('keydown', e=>{
+        if (e.code === 'Space'){
+          e.preventDefault();
+          toggle();
+        } else if (e.key.toLowerCase() === 'r'){
+          e.preventDefault();
+          if (!resetTimer){
+            showResetCountdown();
+          }
         }
-      }, HOLD_THRESHOLD);
+      });
 
-      // do NOT toggle start/stop here. we handle quick tap on keyup to keep behavior consistent.
-      // however, if timer isn't running, we can start immediately so user sees instant start on press.
-      if (!running) {
-        startTimer();
-      }
-    }
-
-    else if (e.code === 'KeyR') {
-      e.preventDefault();
-      startResetCountdown();
-    }
-  }, {passive:false});
-
-  window.addEventListener('keyup', (e) => {
-    if (e.code === 'Space') {
-      e.preventDefault();
-      const downDuration = performance.now() - spaceKeyDownAt;
-      spaceHeld = false;
-
-      // if hold timer still pending -> it was a quick tap
-      if (spaceHoldTimer) {
-        clearTimeout(spaceHoldTimer);
-        spaceHoldTimer = null;
-        // quick tap behavior:
-        // if we started on keydown (because timer was stopped) then do nothing else on keyup
-        // else if timer was running and not frozen -> stop it
-        if (running && !frozen && downDuration < HOLD_THRESHOLD) {
-          stopTimer();
+      window.addEventListener('keyup', e=>{
+        if (e.key.toLowerCase() === 'r'){
+          clearInterval(resetTimer);
+          resetTimer = null;
+          resetBox.classList.remove('show');
         }
-        // if running but frozen can't happen here because freeze only set after hold timer fires
-      } else {
-        // hold timer fired earlier and possibly set frozen=true; on keyup we unfreeze
-        if (frozen) {
-          frozen = false;
-          // set new startTs so timing continues smoothly from where it left off
-          startTs = performance.now();
-        } else {
-          // defensive: if no frozen but also no spaceHoldTimer, do nothing
+      });
+
+      // touch support
+      let touchHold = null;
+      document.addEventListener('touchstart', e=>{
+        const touch = e.touches[0];
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        if (touch.clientY < vh * 0.25 && touch.clientX > vw * 0.7){
+          showResetCountdown();
         }
-      }
-    }
+      });
+      document.addEventListener('touchend', ()=>{
+        clearInterval(resetTimer);
+        resetTimer = null;
+        resetBox.classList.remove('show');
+      });
 
-    else if (e.code === 'KeyR') {
-      cancelResetCountdown();
-    }
-  });
+      // settings toggle
+      settingsBtn.addEventListener('click', ()=>{
+        settingsMenu.classList.toggle('show');
+      });
 
-  // touch support: mirror key behavior
-  let touchStartAt = 0;
-  let touchHoldT = null;
-  window.addEventListener('touchstart', (ev) => {
-    ev.preventDefault();
-    touchStartAt = performance.now();
-    // short start behavior: if not running, start immediately
-    if (!running) startTimer();
+      decimalRadios.forEach(r=>{
+        r.addEventListener('change', ()=>{
+          decimals = parseInt(r.value);
+          render();
+        });
+      });
 
-    touchHoldT = setTimeout(() => {
-      touchHoldT = null;
-      // treat as hold: if running, start reset countdown? for touch we use long press -> reset countdown
-      // we already used long press for reset earlier; keep that behavior
-      startResetCountdown();
-    }, 500);
-  }, {passive:false});
-
-  window.addEventListener('touchend', (ev) => {
-    ev.preventDefault();
-    const dur = performance.now() - touchStartAt;
-    if (touchHoldT) {
-      clearTimeout(touchHoldT);
-      touchHoldT = null;
-      // short tap end - toggle stop if running (and not frozen)
-      if (running && !frozen) {
-        stopTimer();
-      }
-    } else {
-      // long touch ended - cancel reset countdown if it didn't finish
-      cancelResetCountdown();
-    }
-  }, {passive:false});
-
-  // settings UI
-  settingsBtn.addEventListener('click', (ev) => {
-    ev.stopPropagation();
-    settingsMenu.classList.toggle('open');
-  });
-  window.addEventListener('click', (ev) => {
-    if (!settingsMenu.contains(ev.target) && !settingsBtn.contains(ev.target)) settingsMenu.classList.remove('open');
-  });
-
-  radios.forEach(r => r.addEventListener('change', (ev) => {
-    decimals = parseInt(ev.target.value, 10);
-    renderOnce();
-  }));
-
-  // initial render
-  renderOnce();
-})();
-</script>
+      render();
+    })();
+  </script>
 </body>
 </html>
