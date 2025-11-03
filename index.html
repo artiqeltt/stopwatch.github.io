@@ -1,153 +1,93 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Stopwatch</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Stopwatch - space to toggle</title>
 
-<style>
-  @font-face {
-    font-family: "Science Gothic";
-    src: url("fonts/ScienceGothic[CTRS,slnt,wdth,wght].ttf") format("truetype-variations");
-    font-weight: 100 900;
-    font-stretch: 50% 200%;
-    font-style: normal;
-  }
+  <style>
+    @font-face {
+      font-family: "Science Gothic";
+      src: url("fonts/ScienceGothic[CTRS,slnt,wdth,wght].ttf") format("truetype-variations");
+      font-weight: 100 900;
+      font-stretch: 50% 200%;
+      font-style: normal;
+    }
 
-  html, body {
-    height: 100%;
-    margin: 0;
-    background: #000;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    font-family: "Science Gothic", system-ui, sans-serif;
-    overflow: hidden;
-    user-select: none;
-  }
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: #000;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Science Gothic", system-ui, sans-serif;
+      user-select: none;
+      overflow: hidden;
+    }
 
-  .time {
-    font-size: clamp(48px, 10vw, 140px);
-    font-variation-settings: "wdth" 120, "wght" 400;
-    letter-spacing: 0em;
-    line-height: 0.9;
-    font-feature-settings: "tnum" 1, "lnum" 1; /* tabular + lining numbers */
-  }
+    .wrap {
+      text-align: center;
+      transform: translateZ(0);
+    }
 
-  .hint {
-    margin-top: 8px;
-    font-size: 12px;
-    opacity: 0.6;
-    text-transform: uppercase;
-  }
+    .time {
+      font-size: clamp(48px, 10vw, 140px);
+      letter-spacing: -0.03em;
+      line-height: 0.9;
+      font-variation-settings: "wdth" 120, "wght" 400, "slnt" 0, "CTRS" 0;
+      font-feature-settings: "tnum" 1;
+      display: inline-block;
+    }
 
-  .reset-box {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: rgba(255,255,255,0.08);
-    border-radius: 12px;
-    padding: 10px 16px;
-    font-size: 14px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    opacity: 0;
-    transition: opacity 0.4s ease;
-    pointer-events: none;
-  }
-  .reset-box.show { opacity: 1; }
+    .hint {
+      margin-top: 8px;
+      font-size: 12px;
+      opacity: 0.6;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
 
-  .settings-btn {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 50%;
-    width: 44px;
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-  .settings-btn:hover { background: rgba(255,255,255,0.2); }
+    .running .time {
+      text-shadow: 0 4px 15px rgba(0,255,140,0.05), 0 1px 0 rgba(255,255,255,0.03);
+    }
 
-  .settings-box {
-    position: fixed;
-    bottom: -130px;
-    right: 20px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 16px;
-    padding: 12px;
-    width: 160px;
-    text-align: center;
-    transition: bottom 0.3s ease;
-  }
-  .settings-box.show {
-    bottom: 80px;
-  }
-
-  .option {
-    padding: 6px;
-    margin: 4px 0;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-  .option:hover {
-    background: rgba(255,255,255,0.2);
-  }
-  .option.active {
-    background: rgba(255,255,255,0.3);
-  }
-</style>
+    ::selection {
+      background: rgba(255,255,255,0.08);
+    }
+  </style>
 </head>
 <body>
-  <div class="reset-box" id="resetBox">Resetting in 3</div>
-
-  <div id="timeDisplay" class="time">0:00.0</div>
-  <div class="hint">PRESS SPACE OR TAP TO START/STOP | HOLD R OR TAP HOLD TO RESET</div>
-
-  <div class="settings-btn" id="settingsBtn">⚙️</div>
-  <div class="settings-box" id="settingsBox">
-    <div class="option" data-decimals="1">1 Decimal</div>
-    <div class="option" data-decimals="2">2 Decimals</div>
-    <div class="option" data-decimals="3">3 Decimals</div>
+  <div class="wrap" id="wrap">
+    <div id="timeDisplay" class="time">0:00.0</div>
+    <div class="hint">PRESS SPACE TO START/STOP | HOLD SPACE TO FREEZE | R TO RESET</div>
   </div>
 
   <script>
     (function(){
       const display = document.getElementById('timeDisplay');
-      const resetBox = document.getElementById('resetBox');
-      const settingsBtn = document.getElementById('settingsBtn');
-      const settingsBox = document.getElementById('settingsBox');
-      const options = document.querySelectorAll('.option');
+      const wrap = document.getElementById('wrap');
 
       let running = false;
       let startTs = 0;
       let elapsed = 0;
       let rafId = null;
-      let resetHoldTimer = null;
-      let resetCountdown = 0;
-      let resetActive = false;
-      let decimalPlaces = 1;
+      let frozen = false;
 
       function formatTime(ms){
         const totalMilliseconds = Math.floor(ms);
-        const totalSeconds = totalMilliseconds / 1000;
+        const tenths = Math.floor((totalMilliseconds % 1000) / 100);
+        const totalSeconds = Math.floor(totalMilliseconds / 1000);
+        const seconds = totalSeconds % 60;
         const minutes = Math.floor(totalSeconds / 60);
-        const seconds = (totalSeconds % 60).toFixed(decimalPlaces);
-        return `${minutes}:${seconds.padStart(2 + decimalPlaces + 1, '0')}`;
+        return `${minutes}:${String(seconds).padStart(2,'0')}.${tenths}`;
       }
 
       function render(){
         const now = performance.now();
-        const currentElapsed = elapsed + (running ? now - startTs : 0);
+        const currentElapsed = elapsed + (running && !frozen ? Math.floor(now - startTs) : 0);
         display.textContent = formatTime(currentElapsed);
       }
 
@@ -160,14 +100,23 @@
         if (running) return;
         running = true;
         startTs = performance.now();
+        wrap.classList.add('running');
         if (!rafId) tick();
       }
 
       function stop(){
         if (!running) return;
         const now = performance.now();
-        elapsed += now - startTs;
+        elapsed += Math.floor(now - startTs);
         running = false;
+        wrap.classList.remove('running');
+        render();
+      }
+
+      function reset(){
+        running = false;
+        elapsed = 0;
+        wrap.classList.remove('running');
         render();
       }
 
@@ -175,80 +124,42 @@
         running ? stop() : start();
       }
 
-      function reset(){
-        running = false;
-        elapsed = 0;
-        render();
-        setTimeout(()=>resetBox.classList.remove('show'),400);
-      }
-
-      function startResetCountdown(){
-        if (resetActive) return;
-        resetActive = true;
-        resetCountdown = 3;
-        resetBox.textContent = `Resetting in ${resetCountdown}`;
-        resetBox.classList.add('show');
-        resetHoldTimer = setInterval(()=>{
-          resetCountdown--;
-          if (resetCountdown <= 0){
-            clearInterval(resetHoldTimer);
-            resetHoldTimer = null;
-            resetActive = false;
-            reset();
+      window.addEventListener('keydown', function(e){
+        if (e.code === 'Space'){
+          e.preventDefault();
+          if (running) {
+            frozen = true;
           } else {
-            resetBox.textContent = `Resetting in ${resetCountdown}`;
+            toggle();
           }
-        }, 1000);
-      }
-
-      function cancelResetCountdown(){
-        if (resetHoldTimer){
-          clearInterval(resetHoldTimer);
-          resetHoldTimer = null;
+        } else if (e.key.toLowerCase() === 'r') {
+          e.preventDefault();
+          reset();
         }
-        resetBox.classList.remove('show');
-        resetActive = false;
-      }
-
-      window.addEventListener('keydown', e=>{
-        if (e.code === 'Space'){ e.preventDefault(); toggle(); }
-        else if (e.key.toLowerCase() === 'r'){ startResetCountdown(); }
-      });
-      window.addEventListener('keyup', e=>{
-        if (e.key.toLowerCase() === 'r') cancelResetCountdown();
       });
 
-      let touchTimeout = null;
-      let touchStartTime = 0;
-      window.addEventListener('touchstart', e=>{
-        e.preventDefault();
-        touchStartTime = Date.now();
-        touchTimeout = setTimeout(()=>startResetCountdown(), 500);
-      }, {passive:false});
-      window.addEventListener('touchend', e=>{
-        e.preventDefault();
-        const duration = Date.now() - touchStartTime;
-        if (duration < 500) toggle();
-        cancelResetCountdown();
-        clearTimeout(touchTimeout);
-      }, {passive:false});
-
-      settingsBtn.onclick = ()=>{
-        settingsBox.classList.toggle('show');
-      };
-
-      options.forEach(opt=>{
-        opt.onclick = ()=>{
-          decimalPlaces = parseInt(opt.dataset.decimals);
-          options.forEach(o=>o.classList.remove('active'));
-          opt.classList.add('active');
-          settingsBox.classList.remove('show');
-          render();
-        };
+      window.addEventListener('keyup', function(e){
+        if (e.code === 'Space'){
+          e.preventDefault();
+          if (frozen) {
+            frozen = false;
+            startTs = performance.now();
+          } else {
+            toggle();
+          }
+        }
       });
 
-      options[0].classList.add('active');
       render();
+
+      document.addEventListener('visibilitychange', function(){
+        if (document.hidden){
+          if (rafId){ cancelAnimationFrame(rafId); rafId = null; }
+        } else {
+          if (running && !rafId) tick();
+          else render();
+        }
+      });
     })();
   </script>
 </body>
