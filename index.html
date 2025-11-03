@@ -29,8 +29,6 @@
     align-items:center;
     justify-content:center;
     flex-direction:column;
-    -webkit-font-smoothing:antialiased;
-    -moz-osx-font-smoothing:grayscale;
     user-select:none;
     overflow:hidden;
   }
@@ -38,7 +36,7 @@
   .time {
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum" 1;
-    font-size: clamp(72px, 13vw, 170px);
+    font-size: clamp(72px, 13vw, 160px);
     font-variation-settings: "wght" 350, "wdth" 100;
     letter-spacing: -0.02em;
     line-height: 0.9;
@@ -82,7 +80,6 @@
     background:var(--panel);
     border-radius:999px;
     cursor:pointer;
-    user-select:none;
     z-index:100;
     font-size:20px;
   }
@@ -127,7 +124,7 @@
   <div class="reset-box" id="resetBox">RESETTING IN 3</div>
 
   <div id="timeDisplay" class="time">0:00.0</div>
-  <div class="hint" id="hint">PRESS SPACE TO START/STOP • HOLD SPACE TO FREEZE • HOLD R TO RESET</div>
+  <div class="hint" id="hint">PRESS SPACE TO START/STOP | HOLD SPACE TO FREEZE | HOLD R TO RESET</div>
 
   <div class="settings" id="settingsBtn" title="Settings">⚙️</div>
 
@@ -175,19 +172,15 @@
     return `${minutes}:${String(seconds).padStart(2,'0')}.${fracStr}`;
   }
 
-  function currentElapsed(){
-    if (running && !frozen){
-      return elapsedMs + (performance.now() - startTs);
-    }
-    return elapsedMs;
-  }
-
   function render(){
-    timeDisplay.textContent = formatTime(currentElapsed());
+    if (running && !frozen){
+      const current = performance.now();
+      timeDisplay.textContent = formatTime(elapsedMs + (current - startTs));
+    }
     raf = requestAnimationFrame(render);
   }
 
-  function ensureRAF(){
+  function startRAF(){
     if (!raf) raf = requestAnimationFrame(render);
   }
 
@@ -199,7 +192,7 @@
     if (running) return;
     running = true;
     startTs = performance.now();
-    ensureRAF();
+    startRAF();
   }
 
   function stopTimer(){
@@ -222,7 +215,6 @@
     resetRemaining = RESET_SECONDS;
     resetBox.textContent = `RESETTING IN ${resetRemaining}`;
     resetBox.classList.add('show');
-    ensureRAF();
     resetInterval = setInterval(()=>{
       resetRemaining--;
       if (resetRemaining>0){
@@ -246,8 +238,11 @@
   window.addEventListener('keydown',e=>{
     if (e.code==='Space'){
       e.preventDefault();
-      if (!running) startTimer();
-      else frozen=true;
+      if (!running){
+        startTimer();
+      } else {
+        frozen = true;
+      }
     } else if (e.code==='KeyR'){
       e.preventDefault();
       startResetCountdown();
@@ -258,8 +253,8 @@
     if (e.code==='Space'){
       e.preventDefault();
       if (frozen){
-        frozen=false;
-        startTs=performance.now();
+        frozen = false;
+        startTs = performance.now();
       } else {
         if (running) stopTimer();
         else startTimer();
@@ -282,10 +277,11 @@
 
   radios.forEach(r=>r.addEventListener('change',()=>{
     decimals=parseInt(r.value,10);
-    timeDisplay.textContent=formatTime(currentElapsed());
+    timeDisplay.textContent=formatTime(elapsedMs);
   }));
 
   timeDisplay.textContent=formatTime(0);
+  startRAF();
 })();
 </script>
 </body>
