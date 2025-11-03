@@ -1,166 +1,177 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Stopwatch - space to toggle</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stopwatch</title>
+<style>
+  @font-face {
+    font-family: 'ScienceGothic';
+    src: url('fonts/ScienceGothic.ttf') format('truetype');
+  }
 
-  <style>
-    @font-face {
-      font-family: "Science Gothic";
-      src: url("fonts/ScienceGothic[CTRS,slnt,wdth,wght].ttf") format("truetype-variations");
-      font-weight: 100 900;
-      font-stretch: 50% 200%;
-      font-style: normal;
-    }
+  body {
+    background-color: black;
+    color: white;
+    font-family: 'ScienceGothic', sans-serif;
+    margin: 0;
+    overflow: hidden;
+  }
 
-    html, body {
-      height: 100%;
-      margin: 0;
-      background: #000;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: "Science Gothic", system-ui, sans-serif;
-      user-select: none;
-      overflow: hidden;
-    }
+  .stopwatch {
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 90px;
+    font-weight: 350;
+    letter-spacing: 0.15em;
+  }
 
-    .wrap {
-      text-align: center;
-      transform: translateZ(0);
-    }
+  .info {
+    position: absolute;
+    top: 55%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 20px;
+    color: gray;
+  }
 
-    .time {
-      font-size: clamp(48px, 10vw, 140px);
-      line-height: 0.9;
-      font-variation-settings: "wdth" 120, "wght" 350, "slnt" 0, "CTRS" 0;
-      font-feature-settings: "tnum" 1;
-      display: inline-block;
-      letter-spacing: -0.07em; /* tight like MW2 */
-    }
+  .reset-box {
+    position: absolute;
+    top: 30px;
+    right: 30px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 10px 20px;
+    font-size: 18px;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
 
-    .hint {
-      margin-top: 8px;
-      font-size: 12px;
-      opacity: 0.6;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-    }
+  .settings-icon {
+    position: absolute;
+    bottom: 25px;
+    right: 25px;
+    font-size: 30px;
+    cursor: pointer;
+    user-select: none;
+  }
 
-    .running .time {
-      text-shadow: 0 4px 15px rgba(0,255,140,0.05), 0 1px 0 rgba(255,255,255,0.03);
-    }
+  .settings-menu {
+    position: absolute;
+    bottom: 70px;
+    right: 25px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 10px 15px;
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+  }
 
-    ::selection {
-      background: rgba(255,255,255,0.08);
-    }
-  </style>
+  .settings-menu button {
+    background: none;
+    color: white;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+  }
+
+  .settings-menu button:hover {
+    text-decoration: underline;
+  }
+</style>
 </head>
 <body>
-  <div class="wrap" id="wrap">
-    <div id="timeDisplay" class="time">0:00.0</div>
-    <div class="hint">PRESS SPACE TO START/STOP | HOLD SPACE TO FREEZE | R TO RESET</div>
+  <div class="stopwatch" id="stopwatch">0.0</div>
+  <div class="info">press space to start/stop — hold R to reset</div>
+  <div class="reset-box" id="resetBox">resetting in 3...</div>
+  <div class="settings-icon" id="settingsIcon">⚙️</div>
+  <div class="settings-menu" id="settingsMenu">
+    <button data-decimals="1">1 decimal</button>
+    <button data-decimals="2">2 decimals</button>
+    <button data-decimals="3">3 decimals</button>
   </div>
 
-  <script>
-    (function(){
-      const display = document.getElementById('timeDisplay');
-      const wrap = document.getElementById('wrap');
+<script>
+let startTime = 0;
+let elapsedTime = 0;
+let timerInterval;
+let running = false;
+let decimals = 1;
+let resetTimer;
+let holdTime = 3;
+const stopwatch = document.getElementById("stopwatch");
+const resetBox = document.getElementById("resetBox");
+const settingsIcon = document.getElementById("settingsIcon");
+const settingsMenu = document.getElementById("settingsMenu");
 
-      let running = false;
-      let startTs = 0;
-      let elapsed = 0;
-      let rafId = null;
-      let frozen = false;
+function updateDisplay() {
+  stopwatch.textContent = (elapsedTime / 1000).toFixed(decimals);
+}
 
-      function formatTime(ms){
-        const totalMilliseconds = Math.floor(ms);
-        const tenths = Math.floor((totalMilliseconds % 1000) / 100);
-        const totalSeconds = Math.floor(totalMilliseconds / 1000);
-        const seconds = totalSeconds % 60;
-        const minutes = Math.floor(totalSeconds / 60);
-        return `${minutes}:${String(seconds).padStart(2,'0')}.${tenths}`;
-      }
+document.addEventListener("keydown", (e) => {
+  if (e.code === "Space") {
+    e.preventDefault();
+    if (!running) {
+      running = true;
+      startTime = Date.now() - elapsedTime;
+      timerInterval = setInterval(() => {
+        elapsedTime = Date.now() - startTime;
+        updateDisplay();
+      }, 10);
+    } else {
+      clearInterval(timerInterval);
+      running = false;
+    }
+  }
 
-      function render(){
-        const now = performance.now();
-        const currentElapsed = elapsed + (running && !frozen ? Math.floor(now - startTs) : 0);
-        display.textContent = formatTime(currentElapsed);
-      }
-
-      function tick(){
-        render();
-        rafId = requestAnimationFrame(tick);
-      }
-
-      function start(){
-        if (running) return;
-        running = true;
-        startTs = performance.now();
-        wrap.classList.add('running');
-        if (!rafId) tick();
-      }
-
-      function stop(){
-        if (!running) return;
-        const now = performance.now();
-        elapsed += Math.floor(now - startTs);
-        running = false;
-        wrap.classList.remove('running');
-        render();
-      }
-
-      function reset(){
-        running = false;
-        elapsed = 0;
-        wrap.classList.remove('running');
-        render();
-      }
-
-      function toggle(){
-        running ? stop() : start();
-      }
-
-      window.addEventListener('keydown', function(e){
-        if (e.code === 'Space'){
-          e.preventDefault();
-          if (running) {
-            frozen = true;
-          } else {
-            toggle();
-          }
-        } else if (e.key.toLowerCase() === 'r') {
-          e.preventDefault();
-          reset();
-        }
-      });
-
-      window.addEventListener('keyup', function(e){
-        if (e.code === 'Space'){
-          e.preventDefault();
-          if (frozen) {
-            frozen = false;
-            startTs = performance.now();
-          } else {
-            toggle();
-          }
-        }
-      });
-
-      render();
-
-      document.addEventListener('visibilitychange', function(){
-        if (document.hidden){
-          if (rafId){ cancelAnimationFrame(rafId); rafId = null; }
+  if (e.code === "KeyR") {
+    if (!resetTimer) {
+      let timeLeft = holdTime;
+      resetBox.style.opacity = 1;
+      resetBox.textContent = `resetting in ${timeLeft}...`;
+      resetTimer = setInterval(() => {
+        timeLeft--;
+        if (timeLeft > 0) {
+          resetBox.textContent = `resetting in ${timeLeft}...`;
         } else {
-          if (running && !rafId) tick();
-          else render();
+          clearInterval(resetTimer);
+          resetTimer = null;
+          elapsedTime = 0;
+          updateDisplay();
+          resetBox.textContent = "reset!";
+          setTimeout(() => {
+            resetBox.style.opacity = 0;
+          }, 800);
         }
-      });
-    })();
-  </script>
+      }, 1000);
+    }
+  }
+});
+
+document.addEventListener("keyup", (e) => {
+  if (e.code === "KeyR" && resetTimer) {
+    clearInterval(resetTimer);
+    resetTimer = null;
+    resetBox.style.opacity = 0;
+  }
+});
+
+settingsIcon.addEventListener("click", () => {
+  settingsMenu.style.display = settingsMenu.style.display === "flex" ? "none" : "flex";
+});
+
+settingsMenu.querySelectorAll("button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    decimals = parseInt(btn.dataset.decimals);
+    updateDisplay();
+    settingsMenu.style.display = "none";
+  });
+});
+
+updateDisplay();
+</script>
 </body>
 </html>
