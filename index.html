@@ -13,7 +13,7 @@
     html, body {
       height: 100%;
       margin: 0;
-      background-color: black;
+      background: black;
       color: white;
       display: flex;
       flex-direction: column;
@@ -25,7 +25,7 @@
     }
 
     #stopwatch {
-      font-size: clamp(70px, 12vw, 170px);
+      font-size: clamp(60px, 10vw, 150px);
       letter-spacing: -0.02em;
       font-variant-numeric: tabular-nums;
       font-variation-settings: "wght" 350, "wdth" 100;
@@ -78,27 +78,30 @@
       right: 20px;
       background: rgba(255, 255, 255, 0.08);
       border-radius: 10px;
-      padding: 10px;
+      padding: 12px 16px;
       display: none;
       flex-direction: column;
-      gap: 6px;
-      font-size: 14px;
-    }
-
-    #settingsMenu button {
-      background: none;
-      border: 1px solid rgba(255,255,255,0.2);
-      color: white;
-      padding: 5px 10px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s ease;
+      gap: 8px;
+      font-size: 13px;
+      min-width: 130px;
       font-family: 'ScienceGothic', sans-serif;
-      text-transform: uppercase;
     }
 
-    #settingsMenu button:hover {
-      background: rgba(255,255,255,0.15);
+    .settings-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .settings-option input {
+      accent-color: white;
+      cursor: pointer;
+    }
+
+    .settings-option label {
+      cursor: pointer;
+      user-select: none;
     }
   </style>
 </head>
@@ -107,10 +110,20 @@
   <div id="instruction">PRESS SPACE TO START/STOP • HOLD R TO RESET</div>
   <div id="resetBox">RESETTING IN 3.0S</div>
   <div id="settings">⚙️</div>
+
   <div id="settingsMenu">
-    <button data-decimals="1">1 DECIMAL</button>
-    <button data-decimals="2">2 DECIMALS</button>
-    <button data-decimals="3">3 DECIMALS</button>
+    <div class="settings-option">
+      <input type="radio" name="decimals" id="dec1" value="1" checked>
+      <label for="dec1">1 DECIMAL</label>
+    </div>
+    <div class="settings-option">
+      <input type="radio" name="decimals" id="dec2" value="2">
+      <label for="dec2">2 DECIMALS</label>
+    </div>
+    <div class="settings-option">
+      <input type="radio" name="decimals" id="dec3" value="3">
+      <label for="dec3">3 DECIMALS</label>
+    </div>
   </div>
 
   <script>
@@ -193,11 +206,10 @@
       settingsMenu.style.display = settingsMenu.style.display === 'flex' ? 'none' : 'flex';
     });
 
-    settingsMenu.querySelectorAll('button').forEach(btn => {
-      btn.addEventListener('click', () => {
-        decimals = parseInt(btn.dataset.decimals);
+    document.querySelectorAll('input[name="decimals"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        decimals = parseInt(radio.value);
         updateDisplay((Date.now() - startTime) || 0);
-        settingsMenu.style.display = 'none';
       });
     });
 
