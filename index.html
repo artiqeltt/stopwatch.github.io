@@ -31,13 +31,14 @@
 
     .wrap {
       text-align: center;
+      transform: translateZ(0);
       padding: 10px;
     }
 
     .time {
       font-size: clamp(48px, 10vw, 140px);
-      line-height: 0.85;       /* tighter vertical spacing */
-      letter-spacing: -0.07em; /* tighter horizontal spacing */
+      letter-spacing: -0.03em;
+      line-height: 0.9;
       font-variation-settings: "wdth" 120, "wght" 400, "slnt" 0, "CTRS" 0;
       font-feature-settings: "tnum" 1;
     }
@@ -45,8 +46,8 @@
     .hint {
       margin-top: 8px;
       font-size: 12px;
-      font-weight: 600;
       opacity: 0.6;
+      font-weight: 600;
       letter-spacing: 0.04em;
       text-transform: uppercase;
     }
@@ -55,28 +56,55 @@
       text-shadow: 0 4px 15px rgba(0,255,140,0.05), 0 1px 0 rgba(255,255,255,0.03);
     }
 
+    .reset-box {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+    }
+
+    .reset-box.show {
+      opacity: 1;
+    }
+
     ::selection { background: rgba(255,255,255,0.08); }
   </style>
 </head>
 <body>
+  <div class="reset-box" id="resetBox">Resetting in 5</div>
+
   <div class="wrap" id="wrap">
     <div id="timeDisplay" class="time">0:00.000</div>
-    <div class="hint">PRESS SPACE TO START/STOP | R TO RESET</div>
+    <div class="hint">PRESS SPACE OR TAP TO START/STOP | HOLD R OR HOLD TAP TO RESET</div>
   </div>
 
   <script>
     (function(){
       const display = document.getElementById('timeDisplay');
       const wrap = document.getElementById('wrap');
+      const resetBox = document.getElementById('resetBox');
 
       let running = false;
       let startTs = 0;
       let elapsed = 0;
       let rafId = null;
 
+      let resetHoldTimer = null;
+      let resetCountdown = 0;
+      let resetActive = false;
+
       function formatTime(ms){
         const totalMilliseconds = Math.floor(ms);
-        const milliseconds = totalMilliseconds % 1000; // 0-999
+        const milliseconds = totalMilliseconds % 1000;
         const totalSeconds = Math.floor(totalMilliseconds / 1000);
         const seconds = totalSeconds % 60;
         const minutes = Math.floor(totalSeconds / 60);
@@ -122,17 +150,84 @@
         running ? stop() : start();
       }
 
+      // --- Reset hold feature ---
+      function startResetCountdown(){
+        if (resetActive) return;
+        resetActive = true;
+        resetCountdown = 5;
+        resetBox.textContent = `Resetting in ${resetCountdown}`;
+        resetBox.classList.add('show');
+
+        resetHoldTimer = setInterval(()=>{
+          resetCountdown--;
+          if (resetCountdown <= 0){
+            clearInterval(resetHoldTimer);
+            resetHoldTimer = null;
+            resetBox.classList.remove('show');
+            resetActive = false;
+            reset();
+          } else {
+            resetBox.textContent = `Resetting in ${resetCountdown}`;
+          }
+        }, 1000);
+      }
+
+      function cancelResetCountdown(){
+        if (resetHoldTimer){
+          clearInterval(resetHoldTimer);
+          resetHoldTimer = null;
+        }
+        resetBox.classList.remove('show');
+        resetActive = false;
+      }
+
+      // keyboard
       window.addEventListener('keydown', function(e){
         if (e.code === 'Space'){
           e.preventDefault();
           toggle();
         } else if (e.key.toLowerCase() === 'r') {
           e.preventDefault();
-          reset();
+          startResetCountdown();
         }
       }, {passive:false});
 
+      window.addEventListener('keyup', function(e){
+        if (e.key.toLowerCase() === 'r') {
+          cancelResetCountdown();
+        }
+      });
+
+      // touch
+      let touchTimeout = null;
+      let touchStartTime = 0;
+
+      window.addEventListener('touchstart', function(e){
+        e.preventDefault();
+        touchStartTime = Date.now();
+        touchTimeout = setTimeout(()=>{
+          startResetCountdown();
+        }, 500); // start showing after 0.5s hold
+      }, {passive:false});
+
+      window.addEventListener('touchend', function(e){
+        e.preventDefault();
+        const duration = Date.now() - touchStartTime;
+        if (duration < 500) toggle(); // short tap toggles
+        cancelResetCountdown();
+        clearTimeout(touchTimeout);
+      }, {passive:false});
+
       render();
+
+      document.addEventListener('visibilitychange', function(){
+        if (document.hidden){
+          if (rafId){ cancelAnimationFrame(rafId); rafId = null; }
+        } else {
+          if (running && !rafId) tick();
+          else render();
+        }
+      });
     })();
   </script>
 </body>
