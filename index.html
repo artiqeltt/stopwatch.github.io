@@ -7,7 +7,7 @@
   <style>
     @font-face {
       font-family: 'ScienceGothic';
-      src: url('fonts/ScienceGothic[CTRS,slnt,wdth,wght].ttf') format('truetype');
+      src: url('fonts/ScienceGothic[wght].ttf') format('truetype');
     }
 
     html, body {
@@ -21,7 +21,6 @@
       justify-content: center;
       font-family: 'ScienceGothic', sans-serif;
       user-select: none;
-      text-transform: uppercase;
     }
 
     #stopwatch {
@@ -36,7 +35,7 @@
       letter-spacing: 0.15em;
       margin-top: 8px;
       font-weight: 400;
-      font-family: 'ScienceGothic', sans-serif;
+      text-transform: uppercase;
     }
 
     #resetBox {
@@ -48,8 +47,9 @@
       padding: 12px 20px;
       font-size: 16px;
       opacity: 0;
-      transition: opacity 0.4s ease;
+      transition: opacity 0.3s ease;
       font-family: 'ScienceGothic', sans-serif;
+      text-transform: uppercase;
     }
 
     #resetBox.show {
@@ -162,7 +162,7 @@
             resetStopwatch();
             clearInterval(resetCountdown);
             resetBox.textContent = `RESETTING IN 0.0S`;
-            setTimeout(() => resetBox.classList.remove('show'), 600);
+            setTimeout(() => resetBox.classList.remove('show'), 500);
           } else {
             resetBox.textContent = `RESETTING IN ${timeLeft.toFixed(1)}S`;
           }
