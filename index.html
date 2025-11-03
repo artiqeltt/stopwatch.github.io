@@ -1,231 +1,373 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Stopwatch - space to toggle</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Stopwatch</title>
+<style>
+  /* exact filename you provided earlier */
+  @font-face {
+    font-family: "Science Gothic";
+    src: url("fonts/ScienceGothic[CTRS,slnt,wdth,wght].ttf") format("truetype-variations"),
+         url("fonts/ScienceGothic[CTRS,slnt,wdth,wght].ttf") format("truetype");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+  }
 
-  <style>
-    @font-face {
-      font-family: "Science Gothic";
-      src: url("fonts/ScienceGothic[CTRS,slnt,wdth,wght].ttf") format("truetype-variations");
-      font-weight: 100 900;
-      font-stretch: 50% 200%;
-      font-style: normal;
-    }
+  :root{
+    --bg:#000;
+    --fg:#fff;
+    --panel: rgba(255,255,255,0.08);
+    --muted: rgba(255,255,255,0.75);
+  }
 
-    html, body {
-      height: 100%;
-      margin: 0;
-      background: #000;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      font-family: "Science Gothic", system-ui, sans-serif;
-      user-select: none;
-      overflow: hidden;
-    }
+  html,body{
+    height:100%;
+    margin:0;
+    background:var(--bg);
+    color:var(--fg);
+    font-family: "Science Gothic", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    text-transform: uppercase;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    user-select:none;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+  }
 
-    .wrap {
-      text-align: center;
-    }
+  /* main time - tight MW2 style */
+  .time {
+    font-variation-settings: "wght" 350, "wdth" 120;
+    font-feature-settings: "tnum" 1, "lnum" 1;
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(72px, 13vw, 160px);
+    line-height:0.9;
+    letter-spacing: -0.06em; /* tighter like killcam */
+    text-align:center;
+    margin:0;
+  }
 
-    .time {
-      font-size: clamp(48px, 10vw, 140px);
-      letter-spacing: 0.15em;
-      font-variation-settings: "wdth" 120, "wght" 350, "slnt" 0, "CTRS" 0;
-      font-feature-settings: "tnum" 1;
-      font-family: "Science Gothic", system-ui, sans-serif;
-    }
+  .hint {
+    margin-top:8px;
+    font-size:12px;               /* smaller like you wanted */
+    color:var(--muted);
+    letter-spacing:0.12em;
+    text-align:center;
+  }
 
-    .hint {
-      margin-top: 8px;
-      font-size: 12px;
-      opacity: 0.6;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      font-family: "Science Gothic", system-ui, sans-serif;
-    }
+  /* reset box top-right */
+  .reset-box{
+    position:fixed;
+    top:20px;
+    right:20px;
+    background:var(--panel);
+    border-radius:12px;
+    padding:10px 14px;
+    font-size:14px;
+    font-weight:600;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    opacity:0;
+    transition: opacity .35s ease, transform .25s ease;
+    pointer-events:none;
+  }
+  .reset-box.show{ opacity:1; }
 
-    .running .time {
-      text-shadow: 0 4px 15px rgba(0,255,140,0.05), 0 1px 0 rgba(255,255,255,0.03);
-    }
+  /* settings icon bottom-right */
+  .settings-btn {
+    position:fixed;
+    bottom:16px;
+    right:16px;
+    width:44px;
+    height:44px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--panel);
+    border-radius:999px;
+    cursor:pointer;
+    z-index:120;
+    font-size:20px;
+  }
 
-    #settingsIcon {
-      position: absolute;
-      bottom: 20px;
-      right: 20px;
-      font-size: 22px;
-      opacity: 0.7;
-      cursor: pointer;
-    }
+  /* slide-up menu */
+  .settings-menu {
+    position:fixed;
+    right:16px;
+    bottom:70px;
+    width:170px;
+    border-radius:12px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+    backdrop-filter: blur(6px);
+    padding:8px;
+    box-sizing:border-box;
+    transform: translateY(18px);
+    opacity:0;
+    transition: transform .22s ease, opacity .22s ease;
+    z-index:110;
+  }
+  .settings-menu.open {
+    transform: translateY(0);
+    opacity:1;
+  }
 
-    #settings {
-      position: absolute;
-      bottom: 60px;
-      right: 20px;
-      background: rgba(255,255,255,0.07);
-      padding: 10px 15px;
-      border-radius: 12px;
-      display: none;
-      flex-direction: column;
-      gap: 5px;
-      font-size: 13px;
-      text-align: left;
-      font-family: "Science Gothic", system-ui, sans-serif;
-    }
+  .settings-option {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:8px 6px;
+    cursor:pointer;
+    user-select:none;
+  }
+  .settings-option input { accent-color:#fff; }
+  .settings-option label { font-size:13px; }
 
-    #settings label {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    #resetBox {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      padding: 10px 16px;
-      background: rgba(255,255,255,0.1);
-      border-radius: 14px;
-      font-size: 14px;
-      opacity: 0;
-      transition: opacity 0.4s ease;
-      font-family: "Science Gothic", system-ui, sans-serif;
-    }
-
-    ::selection { background: rgba(255,255,255,0.08); }
-  </style>
+  ::selection { background: rgba(255,255,255,0.06); }
+</style>
 </head>
 <body>
-  <div class="wrap" id="wrap">
+  <div id="resetBox" class="reset-box">RESETTING IN 3</div>
+
+  <div class="wrap">
     <div id="timeDisplay" class="time">00:00.0</div>
-    <div class="hint">PRESS SPACE TO START/STOP | PRESS AND HOLD R TO RESET</div>
+    <div class="hint" id="hint">PRESS SPACE TO START/STOP | PRESS AND HOLD R TO RESET</div>
   </div>
 
-  <div id="resetBox">resetting in 3...</div>
-  <div id="settingsIcon">⚙️</div>
+  <div id="settingsBtn" class="settings-btn" title="Settings">⚙️</div>
 
-  <div id="settings">
-    <label><input type="radio" name="decimals" value="1" checked> 1 DECIMAL</label>
-    <label><input type="radio" name="decimals" value="2"> 2 DECIMALS</label>
-    <label><input type="radio" name="decimals" value="3"> 3 DECIMALS</label>
+  <div id="settingsMenu" class="settings-menu" aria-hidden="true">
+    <div class="settings-option"><input type="radio" name="dec" id="d1" value="1" checked><label for="d1">1 DECIMAL</label></div>
+    <div class="settings-option"><input type="radio" name="dec" id="d2" value="2"><label for="d2">2 DECIMALS</label></div>
+    <div class="settings-option"><input type="radio" name="dec" id="d3" value="3"><label for="d3">3 DECIMALS</label></div>
   </div>
 
-  <script>
-    const display = document.getElementById('timeDisplay');
-    const wrap = document.getElementById('wrap');
-    const resetBox = document.getElementById('resetBox');
-    const settingsIcon = document.getElementById('settingsIcon');
-    const settings = document.getElementById('settings');
-    let running = false;
-    let startTs = 0;
-    let elapsed = 0;
-    let rafId = null;
-    let decimals = 1;
-    let resetTimer;
-    let holdTime = 0;
+<script>
+(() => {
+  // elements
+  const timeDisplay = document.getElementById('timeDisplay');
+  const resetBox = document.getElementById('resetBox');
+  const settingsBtn = document.getElementById('settingsBtn');
+  const settingsMenu = document.getElementById('settingsMenu');
+  const radios = document.querySelectorAll('input[name="dec"]');
 
-    function formatTime(ms) {
-      const totalMilliseconds = Math.floor(ms);
-      const seconds = (totalMilliseconds / 1000) % 60;
-      const minutes = Math.floor(totalMilliseconds / 60000);
-      return `${String(minutes).padStart(2,'0')}:${seconds.toFixed(decimals).padStart(2 + decimals, '0')}`;
+  // state
+  let running = false;
+  let frozen = false;
+  let startTs = 0;      // performance.now() when timer started
+  let elapsedMs = 0;    // accumulated milliseconds when stopped
+  let raf = null;
+  let decimals = 1;
+
+  // reset hold
+  const RESET_SECONDS = 3;
+  let resetInterval = null;
+  let resetRemaining = RESET_SECONDS;
+
+  // space handling debounce for taps vs holds
+  let spaceHoldTimer = null;
+  const HOLD_THRESHOLD = 250; // ms to consider hold (freeze) vs tap
+  let spaceIsHeld = false;
+
+  // formatting
+  function formatTime(ms) {
+    const totalMs = Math.max(0, Math.floor(ms));
+    const totalSeconds = Math.floor(totalMs / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const fractionMs = totalMs % 1000;
+    const scaled = Math.floor(fractionMs / Math.pow(10, 3 - decimals));
+    const fracStr = String(scaled).padStart(decimals, '0');
+    return `${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}.${fracStr}`;
+  }
+
+  function currentElapsed() {
+    if (running && !frozen) {
+      return elapsedMs + (performance.now() - startTs);
     }
+    return elapsedMs;
+  }
 
-    function render() {
-      const now = performance.now();
-      const currentElapsed = running ? elapsed + (now - startTs) : elapsed;
-      display.textContent = formatTime(currentElapsed);
+  // render loop
+  function renderOnce() {
+    timeDisplay.textContent = formatTime(currentElapsed());
+  }
+  function renderLoop() {
+    renderOnce();
+    raf = requestAnimationFrame(renderLoop);
+  }
+  function ensureRAF() {
+    if (!raf) raf = requestAnimationFrame(renderLoop);
+  }
+  function stopRAF() {
+    if (raf) { cancelAnimationFrame(raf); raf = null; }
+  }
+
+  // timer control
+  function startTimer() {
+    if (running) return;
+    running = true;
+    startTs = performance.now();
+    ensureRAF();
+  }
+  function stopTimer() {
+    if (!running) return;
+    elapsedMs += performance.now() - startTs;
+    running = false;
+    stopRAF();
+    renderOnce(); // freeze instantly without flicker
+  }
+  function resetNow() {
+    running = false;
+    frozen = false;
+    elapsedMs = 0;
+    stopRAF();
+    renderOnce();
+    // show reset notice briefly and hide
+    resetBox.textContent = 'RESET!';
+    setTimeout(()=> resetBox.classList.remove('show'), 400);
+  }
+
+  // reset hold logic (top-right box)
+  function startResetCountdown() {
+    if (resetInterval) return;
+    resetRemaining = RESET_SECONDS;
+    resetBox.textContent = `RESETTING IN ${resetRemaining}`;
+    resetBox.classList.add('show');
+    ensureRAF();
+    resetInterval = setInterval(()=>{
+      resetRemaining--;
+      if (resetRemaining > 0) {
+        resetBox.textContent = `RESETTING IN ${resetRemaining}`;
+      } else {
+        clearInterval(resetInterval);
+        resetInterval = null;
+        resetNow();
+      }
+    }, 1000);
+  }
+  function cancelResetCountdown(){
+    if (resetInterval) {
+      clearInterval(resetInterval);
+      resetInterval = null;
     }
+    resetBox.classList.remove('show');
+  }
 
-    function tick() {
-      render();
-      if (running) rafId = requestAnimationFrame(tick);
-    }
+  // keyboard handlers: space tap toggles start/stop instantly,
+  // holding space will freeze while held (if timer already running).
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+      e.preventDefault();
+      if (spaceIsHeld) return; // ignore repeats
+      spaceIsHeld = true;
 
-    function start() {
-      if (running) return;
-      running = true;
-      startTs = performance.now();
-      wrap.classList.add('running');
-      rafId = requestAnimationFrame(tick);
-    }
-
-    function stop() {
-      if (!running) return;
-      elapsed += performance.now() - startTs;
-      running = false;
-      wrap.classList.remove('running');
-      cancelAnimationFrame(rafId);
-      rafId = null;
-      render();
-    }
-
-    function reset() {
-      running = false;
-      elapsed = 0;
-      wrap.classList.remove('running');
-      cancelAnimationFrame(rafId);
-      rafId = null;
-      render();
-    }
-
-    function toggle() {
-      running ? stop() : start();
-    }
-
-    function startResetHold() {
-      holdTime = 0;
-      resetBox.style.opacity = 1;
-      resetBox.textContent = 'resetting in 3.0...';
-      resetTimer = setInterval(() => {
-        holdTime += 0.1;
-        resetBox.textContent = `resetting in ${(3 - holdTime).toFixed(1)}...`;
-        if (holdTime >= 3) {
-          clearInterval(resetTimer);
-          reset();
-          resetBox.textContent = 'reset!';
-          setTimeout(() => resetBox.style.opacity = 0, 500);
+      // start a hold timer. if it reaches threshold and timer is running -> freeze
+      spaceHoldTimer = setTimeout(() => {
+        if (running) {
+          frozen = true;           // freeze while held
         }
-      }, 100);
+        // keep indicator that it's a hold
+        spaceHoldTimer = null;
+      }, HOLD_THRESHOLD);
+
+      // immediate tap behavior: if timer NOT running, start it immediately on keydown
+      // (so quick taps start without waiting for keyup)
+      if (!running) {
+        startTimer();
+      }
+      // if running and user pressed, we wait to see if it's a hold (freeze) or a quick tap release (stop)
+      // do nothing else here — keyup will handle quick tap toggling.
     }
 
-    function cancelResetHold() {
-      clearInterval(resetTimer);
-      resetBox.style.opacity = 0;
+    else if (e.code === 'KeyR') {
+      e.preventDefault();
+      startResetCountdown();
+    }
+  }, {passive:false});
+
+  window.addEventListener('keyup', (e) => {
+    if (e.code === 'Space') {
+      e.preventDefault();
+      // if holdTimer still pending -> it's a quick tap release
+      if (spaceHoldTimer) {
+        clearTimeout(spaceHoldTimer);
+        spaceHoldTimer = null;
+        // quick tap release behavior:
+        // if we started the timer on keydown because it wasn't running, we want keyup to do nothing (already started)
+        // otherwise toggle stop if timer was running and not frozen
+        if (running && !frozen) {
+          // this is a quick tap to stop
+          stopTimer();
+        } else {
+          // if frozen flag somehow not set but running false: start (defensive)
+          // do nothing else
+        }
+      } else {
+        // if holdTimer expired and set frozen=true earlier, unfreeze on keyup
+        if (frozen) {
+          frozen = false;
+          // reset startTs so continuation is smooth
+          startTs = performance.now();
+        }
+      }
+      spaceIsHeld = false;
     }
 
-    window.addEventListener('keydown', e => {
-      if (e.code === 'Space') {
-        e.preventDefault();
-        toggle();
-      } else if (e.key.toLowerCase() === 'r') {
-        e.preventDefault();
-        startResetHold();
+    else if (e.code === 'KeyR') {
+      cancelResetCountdown();
+    }
+  });
+
+  // touch: tap = toggle, longpress -> start reset countdown
+  let touchHoldT = null;
+  window.addEventListener('touchstart', (ev) => {
+    ev.preventDefault();
+    // start timer on short tap start if not running
+    if (!running) startTimer();
+
+    touchHoldT = setTimeout(()=> {
+      // start reset countdown if held
+      startResetCountdown();
+      touchHoldT = null;
+    }, 500);
+  }, {passive:false});
+
+  window.addEventListener('touchend', (ev) => {
+    ev.preventDefault();
+    if (touchHoldT) {
+      // short tap end - toggle stop if running (and not frozen)
+      clearTimeout(touchHoldT);
+      touchHoldT = null;
+      if (running && !frozen) {
+        stopTimer();
       }
-    });
+    } else {
+      // long press ended - cancel reset (if running)
+      cancelResetCountdown();
+    }
+  }, {passive:false});
 
-    window.addEventListener('keyup', e => {
-      if (e.key.toLowerCase() === 'r') {
-        cancelResetHold();
-      }
-    });
+  // settings UI
+  settingsBtn.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    settingsMenu.classList.toggle('open');
+  });
+  window.addEventListener('click', (ev) => {
+    if (!settingsMenu.contains(ev.target) && !settingsBtn.contains(ev.target)) settingsMenu.classList.remove('open');
+  });
 
-    settingsIcon.addEventListener('click', () => {
-      settings.style.display = settings.style.display === 'none' ? 'flex' : 'none';
-    });
+  radios.forEach(r => r.addEventListener('change', (ev) => {
+    decimals = parseInt(ev.target.value, 10);
+    renderOnce();
+  }));
 
-    document.querySelectorAll('input[name="decimals"]').forEach(radio => {
-      radio.addEventListener('change', e => {
-        decimals = parseInt(e.target.value);
-        render();
-      });
-    });
-
-    render();
-  </script>
+  // initial render
+  renderOnce();
+})();
+</script>
 </body>
 </html>
