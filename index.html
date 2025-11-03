@@ -11,44 +11,38 @@
     font-display: swap;
   }
 
-  :root{
+  :root {
     --bg:#000;
     --fg:#fff;
     --panel: rgba(255,255,255,0.08);
     --muted: rgba(255,255,255,0.75);
   }
 
-  html,body{
+  html,body {
     height:100%;
     margin:0;
     background:var(--bg);
     color:var(--fg);
-    -webkit-font-smoothing:antialiased;
-    -moz-osx-font-smoothing:grayscale;
-    font-family: 'ScienceGothic', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: 'ScienceGothic', system-ui, sans-serif;
     text-transform: uppercase;
-  }
-
-  /* center */
-  .center-wrap{
-    height:100%;
     display:flex;
     align-items:center;
     justify-content:center;
     flex-direction:column;
-    pointer-events:auto;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    user-select:none;
+    overflow:hidden;
   }
 
   .time {
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum" 1;
-    font-size: clamp(60px, 12vw, 150px);
-    line-height:0.9;
-    letter-spacing: -0.02em;
-    margin:0;
-    padding:0;
-    text-align:center;
+    font-size: clamp(72px, 13vw, 170px);
     font-variation-settings: "wght" 350, "wdth" 100;
+    letter-spacing: -0.02em;
+    line-height: 0.9;
+    text-align:center;
   }
 
   .hint {
@@ -60,7 +54,7 @@
     text-align:center;
   }
 
-  .reset-box{
+  .reset-box {
     position:fixed;
     top:20px;
     right:20px;
@@ -74,7 +68,7 @@
     pointer-events:none;
     transition:opacity .35s ease;
   }
-  .reset-box.show{ opacity:1; pointer-events:none; }
+  .reset-box.show { opacity:1; }
 
   .settings {
     position:fixed;
@@ -90,48 +84,50 @@
     cursor:pointer;
     user-select:none;
     z-index:100;
+    font-size:20px;
   }
 
-  .settings-menu{
+  .settings-menu {
     position:fixed;
     right:16px;
-    bottom:16px;
-    width:170px;
+    bottom:70px;
+    width:160px;
     border-radius:12px;
     overflow:hidden;
     transform: translateY(120px);
     transition: transform .28s cubic-bezier(.2,.9,.3,1), opacity .28s;
     opacity:0;
-    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+    background: rgba(255,255,255,0.04);
     backdrop-filter: blur(6px);
     z-index:99;
     padding:8px;
     box-sizing:border-box;
   }
-  .settings-menu.open{
-    transform: translateY(-78px);
+  .settings-menu.open {
+    transform: translateY(0);
     opacity:1;
   }
-  .settings-option{
+
+  .settings-option {
     display:flex;
     align-items:center;
     gap:8px;
     padding:8px;
     cursor:pointer;
   }
-  .settings-option input{ accent-color:#fff; }
-  .settings-option label{ font-size:13px; user-select:none; }
 
-  ::selection{ background: rgba(255,255,255,0.06); }
+  .settings-option input { accent-color:#fff; }
+  .settings-option label {
+    font-size:13px;
+    user-select:none;
+  }
 </style>
 </head>
 <body>
   <div class="reset-box" id="resetBox">RESETTING IN 3</div>
 
-  <div class="center-wrap">
-    <div id="timeDisplay" class="time">0:00.0</div>
-    <div class="hint" id="hint">PRESS SPACE TO START/STOP • HOLD SPACE TO FREEZE • HOLD R TO RESET</div>
-  </div>
+  <div id="timeDisplay" class="time">0:00.0</div>
+  <div class="hint" id="hint">PRESS SPACE TO START/STOP • HOLD SPACE TO FREEZE • HOLD R TO RESET</div>
 
   <div class="settings" id="settingsBtn" title="Settings">⚙️</div>
 
@@ -158,23 +154,17 @@
   const settingsMenu = document.getElementById('settingsMenu');
   const radios = document.querySelectorAll('input[name="dec"]');
 
-  // state
   let running = false;
   let frozen = false;
-  let startTs = 0;       // performance.now when started
-  let elapsedMs = 0;     // accumulated ms when stopped
+  let startTs = 0;
+  let elapsedMs = 0;
   let raf = null;
-
-  // reset hold
   const RESET_SECONDS = 3;
   let resetInterval = null;
   let resetRemaining = RESET_SECONDS;
-
-  // decimals
   let decimals = 1;
 
-  // formatting
-  function formatTime(ms) {
+  function formatTime(ms){
     const totalMs = Math.max(0, Math.floor(ms));
     const totalSeconds = Math.floor(totalMs / 1000);
     const minutes = Math.floor(totalSeconds / 60);
@@ -185,170 +175,117 @@
     return `${minutes}:${String(seconds).padStart(2,'0')}.${fracStr}`;
   }
 
-  function currentElapsed() {
-    if (running && !frozen) {
+  function currentElapsed(){
+    if (running && !frozen){
       return elapsedMs + (performance.now() - startTs);
     }
     return elapsedMs;
   }
 
-  // render loop (only needed for running but we use RAF to be smooth)
-  function render() {
+  function render(){
     timeDisplay.textContent = formatTime(currentElapsed());
     raf = requestAnimationFrame(render);
   }
 
-  function ensureRAF() {
+  function ensureRAF(){
     if (!raf) raf = requestAnimationFrame(render);
   }
-  function stopRAF() {
-    if (raf) { cancelAnimationFrame(raf); raf = null; }
+
+  function stopRAF(){
+    if (raf){ cancelAnimationFrame(raf); raf = null; }
   }
 
-  function startTimer() {
+  function startTimer(){
     if (running) return;
     running = true;
     startTs = performance.now();
     ensureRAF();
   }
 
-  function stopTimer() {
+  function stopTimer(){
     if (!running) return;
-    // stash elapsed
     elapsedMs += performance.now() - startTs;
     running = false;
-    // keep display as-is (we keep RAF running to show e.g. reset box if needed)
   }
 
-  function resetNow() {
+  function resetNow(){
     running = false;
     frozen = false;
     elapsedMs = 0;
     timeDisplay.textContent = formatTime(0);
-    // show reset then hide
     resetBox.textContent = 'RESET!';
     setTimeout(()=> resetBox.classList.remove('show'), 450);
   }
 
-  function startResetCountdown() {
+  function startResetCountdown(){
     if (resetInterval) return;
     resetRemaining = RESET_SECONDS;
     resetBox.textContent = `RESETTING IN ${resetRemaining}`;
     resetBox.classList.add('show');
-    // make sure UI updates while counting
     ensureRAF();
-    resetInterval = setInterval(() => {
+    resetInterval = setInterval(()=>{
       resetRemaining--;
-      if (resetRemaining > 0) {
+      if (resetRemaining>0){
         resetBox.textContent = `RESETTING IN ${resetRemaining}`;
       } else {
         clearInterval(resetInterval);
-        resetInterval = null;
+        resetInterval=null;
         resetNow();
       }
-    }, 1000);
+    },1000);
   }
 
-  function cancelResetCountdown() {
-    if (resetInterval) {
+  function cancelResetCountdown(){
+    if (resetInterval){
       clearInterval(resetInterval);
-      resetInterval = null;
+      resetInterval=null;
     }
     resetBox.classList.remove('show');
   }
 
-  // keyboard handlers
-  window.addEventListener('keydown', (e) => {
-    if (e.code === 'Space') {
+  window.addEventListener('keydown',e=>{
+    if (e.code==='Space'){
       e.preventDefault();
-      if (!running) {
-        // quick press should start
-        startTimer();
-      } else {
-        // if running, holding space freezes
-        frozen = true;
-      }
-    } else if (e.code === 'KeyR') {
+      if (!running) startTimer();
+      else frozen=true;
+    } else if (e.code==='KeyR'){
       e.preventDefault();
       startResetCountdown();
     }
-  }, {passive:false});
+  });
 
-  window.addEventListener('keyup', (e) => {
-    if (e.code === 'Space') {
+  window.addEventListener('keyup',e=>{
+    if (e.code==='Space'){
       e.preventDefault();
-      if (frozen) {
-        // unfreeze and continue
-        frozen = false;
-        // set startTs so continuation is smooth
-        startTs = performance.now();
+      if (frozen){
+        frozen=false;
+        startTs=performance.now();
       } else {
-        // quick tap release: toggle stop/start behavior
-        if (running) {
-          stopTimer();
-        } else {
-          startTimer();
-        }
+        if (running) stopTimer();
+        else startTimer();
       }
-    } else if (e.code === 'KeyR') {
+    } else if (e.code==='KeyR'){
       cancelResetCountdown();
     }
   });
 
-  // touch handlers (tap = toggle, long hold => start reset countdown)
-  let touchStart = 0;
-  let touchHoldT = null;
-  window.addEventListener('touchstart', (ev) => {
-    ev.preventDefault();
-    touchStart = Date.now();
-    touchHoldT = setTimeout(() => {
-      startResetCountdown();
-      touchHoldT = null;
-    }, 500);
-  }, {passive:false});
-
-  window.addEventListener('touchend', (ev) => {
-    ev.preventDefault();
-    const dur = Date.now() - touchStart;
-    if (touchHoldT) {
-      clearTimeout(touchHoldT);
-      touchHoldT = null;
-    }
-    if (dur < 500) {
-      // short tap
-      if (!running) startTimer();
-      else {
-        // if running & not frozen -> stop
-        if (!frozen) stopTimer();
-      }
-    } else {
-      // long touch finished - cancel if countdown didn't finish
-      cancelResetCountdown();
-    }
-  }, {passive:false});
-
-  // settings toggle
-  settingsBtn.addEventListener('click', (ev) => {
-    ev.stopPropagation();
+  settingsBtn.addEventListener('click',e=>{
+    e.stopPropagation();
     settingsMenu.classList.toggle('open');
   });
 
-  // click outside closes settings
-  window.addEventListener('click', (ev) => {
-    if (!settingsMenu.contains(ev.target) && !settingsBtn.contains(ev.target)) {
+  window.addEventListener('click',e=>{
+    if (!settingsMenu.contains(e.target) && !settingsBtn.contains(e.target)){
       settingsMenu.classList.remove('open');
     }
   });
 
-  // radio change - update decimals cleanly using currentElapsed()
-  radios.forEach(r => r.addEventListener('change', () => {
-    decimals = parseInt(r.value, 10);
-    // re-render immediately using current elapsed
-    timeDisplay.textContent = formatTime(currentElapsed());
+  radios.forEach(r=>r.addEventListener('change',()=>{
+    decimals=parseInt(r.value,10);
+    timeDisplay.textContent=formatTime(currentElapsed());
   }));
 
-  // initial render
-  timeDisplay.textContent = formatTime(0);
+  timeDisplay.textContent=formatTime(0);
 })();
 </script>
 </body>
