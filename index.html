@@ -1,74 +1,80 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stopwatch</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Stopwatch - space to toggle</title>
+
   <style>
     @font-face {
-      font-family: 'ScienceGothic';
-      src: url('fonts/ScienceGothic.ttf') format('truetype');
+      font-family: "Science Gothic";
+      src: url("fonts/ScienceGothic[CTRS,slnt,wdth,wght].ttf") format("truetype-variations");
+      font-weight: 100 900;
+      font-stretch: 50% 200%;
+      font-style: normal;
     }
 
-    body {
-      background-color: black;
-      color: white;
-      font-family: 'ScienceGothic', sans-serif;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+    html, body {
+      height: 100%;
       margin: 0;
-      text-align: center;
+      background: #000;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      font-family: "Science Gothic", system-ui, sans-serif;
       user-select: none;
+      overflow: hidden;
     }
 
-    #stopwatch {
-      font-size: 130px;
-      font-weight: 350;
+    .wrap {
+      text-align: center;
+    }
+
+    .time {
+      font-size: clamp(48px, 10vw, 140px);
       letter-spacing: 0.15em;
+      font-variation-settings: "wdth" 120, "wght" 350, "slnt" 0, "CTRS" 0;
+      font-feature-settings: "tnum" 1;
+      font-family: "Science Gothic", system-ui, sans-serif;
     }
 
-    #instructions {
-      margin-top: 20px;
-      font-size: 14px;
-      opacity: 0.8;
-      font-family: 'ScienceGothic', sans-serif;
+    .hint {
+      margin-top: 8px;
+      font-size: 12px;
+      opacity: 0.6;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-family: "Science Gothic", system-ui, sans-serif;
     }
 
-    #resetBox {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      padding: 10px 20px;
-      background: rgba(255,255,255,0.1);
-      border-radius: 15px;
-      font-size: 14px;
-      opacity: 0;
-      transition: opacity 0.5s ease;
+    .running .time {
+      text-shadow: 0 4px 15px rgba(0,255,140,0.05), 0 1px 0 rgba(255,255,255,0.03);
     }
 
     #settingsIcon {
       position: absolute;
       bottom: 20px;
       right: 20px;
-      font-size: 26px;
+      font-size: 22px;
+      opacity: 0.7;
       cursor: pointer;
-      opacity: 0.8;
     }
 
     #settings {
       position: absolute;
-      bottom: 70px;
+      bottom: 60px;
       right: 20px;
-      background: rgba(255,255,255,0.08);
-      padding: 12px;
-      border-radius: 10px;
+      background: rgba(255,255,255,0.07);
+      padding: 10px 15px;
+      border-radius: 12px;
       display: none;
       flex-direction: column;
-      gap: 6px;
-      font-size: 14px;
+      gap: 5px;
+      font-size: 13px;
+      text-align: left;
+      font-family: "Science Gothic", system-ui, sans-serif;
     }
 
     #settings label {
@@ -76,113 +82,150 @@
       align-items: center;
       gap: 6px;
     }
+
+    #resetBox {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      padding: 10px 16px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 14px;
+      font-size: 14px;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      font-family: "Science Gothic", system-ui, sans-serif;
+    }
+
+    ::selection { background: rgba(255,255,255,0.08); }
   </style>
 </head>
 <body>
-  <div id="stopwatch">00:00.0</div>
-  <div id="instructions">SPACE | START / STOP | HOLD R | RESET</div>
+  <div class="wrap" id="wrap">
+    <div id="timeDisplay" class="time">00:00.0</div>
+    <div class="hint">PRESS SPACE TO START/STOP | PRESS AND HOLD R TO RESET</div>
+  </div>
+
   <div id="resetBox">resetting in 3...</div>
   <div id="settingsIcon">⚙️</div>
 
   <div id="settings">
-    <label><input type="radio" name="decimals" value="1" checked> 1 decimal</label>
-    <label><input type="radio" name="decimals" value="2"> 2 decimals</label>
-    <label><input type="radio" name="decimals" value="3"> 3 decimals</label>
+    <label><input type="radio" name="decimals" value="1" checked> 1 DECIMAL</label>
+    <label><input type="radio" name="decimals" value="2"> 2 DECIMALS</label>
+    <label><input type="radio" name="decimals" value="3"> 3 DECIMALS</label>
   </div>
 
   <script>
-    let time = 0;
+    const display = document.getElementById('timeDisplay');
+    const wrap = document.getElementById('wrap');
+    const resetBox = document.getElementById('resetBox');
+    const settingsIcon = document.getElementById('settingsIcon');
+    const settings = document.getElementById('settings');
     let running = false;
-    let lastTimestamp = 0;
+    let startTs = 0;
+    let elapsed = 0;
+    let rafId = null;
     let decimals = 1;
-    const display = document.getElementById("stopwatch");
-    const resetBox = document.getElementById("resetBox");
-    const settingsIcon = document.getElementById("settingsIcon");
-    const settings = document.getElementById("settings");
-    let resetHoldTime = 0;
-    let resetInterval;
-    let fadeTimeout;
-    let rafId;
+    let resetTimer;
+    let holdTime = 0;
 
-    function updateDisplay() {
-      const totalSeconds = time / 1000;
-      const minutes = Math.floor(totalSeconds / 60);
-      const seconds = totalSeconds % 60;
-      display.textContent = `${String(minutes).padStart(2, '0')}:${seconds.toFixed(decimals).padStart(2 + decimals, '0')}`;
+    function formatTime(ms) {
+      const totalMilliseconds = Math.floor(ms);
+      const seconds = (totalMilliseconds / 1000) % 60;
+      const minutes = Math.floor(totalMilliseconds / 60000);
+      return `${String(minutes).padStart(2,'0')}:${seconds.toFixed(decimals).padStart(2 + decimals, '0')}`;
     }
 
-    function updateTimer(timestamp) {
+    function render() {
+      const now = performance.now();
+      const currentElapsed = running ? elapsed + (now - startTs) : elapsed;
+      display.textContent = formatTime(currentElapsed);
+    }
+
+    function tick() {
+      render();
+      if (running) rafId = requestAnimationFrame(tick);
+    }
+
+    function start() {
+      if (running) return;
+      running = true;
+      startTs = performance.now();
+      wrap.classList.add('running');
+      rafId = requestAnimationFrame(tick);
+    }
+
+    function stop() {
       if (!running) return;
-      if (!lastTimestamp) lastTimestamp = timestamp;
-      const delta = timestamp - lastTimestamp;
-      time += delta;
-      lastTimestamp = timestamp;
-      updateDisplay();
-      rafId = requestAnimationFrame(updateTimer);
+      elapsed += performance.now() - startTs;
+      running = false;
+      wrap.classList.remove('running');
+      cancelAnimationFrame(rafId);
+      rafId = null;
+      render();
     }
 
-    function startStop() {
-      if (running) {
-        running = false;
-        cancelAnimationFrame(rafId);
-        lastTimestamp = 0; // prevents flicker
-      } else {
-        running = true;
-        lastTimestamp = 0;
-        rafId = requestAnimationFrame(updateTimer);
-      }
+    function reset() {
+      running = false;
+      elapsed = 0;
+      wrap.classList.remove('running');
+      cancelAnimationFrame(rafId);
+      rafId = null;
+      render();
     }
 
-    function resetHoldStart() {
-      resetHoldTime = 0;
+    function toggle() {
+      running ? stop() : start();
+    }
+
+    function startResetHold() {
+      holdTime = 0;
       resetBox.style.opacity = 1;
-      resetInterval = setInterval(() => {
-        resetHoldTime += 0.1;
-        resetBox.textContent = `resetting in ${(3 - resetHoldTime).toFixed(1)}...`;
-        if (resetHoldTime >= 3) {
-          clearInterval(resetInterval);
-          time = 0;
-          updateDisplay();
-          resetBox.textContent = "reset!";
-          fadeTimeout = setTimeout(() => {
-            resetBox.style.opacity = 0;
-          }, 500);
+      resetBox.textContent = 'resetting in 3.0...';
+      resetTimer = setInterval(() => {
+        holdTime += 0.1;
+        resetBox.textContent = `resetting in ${(3 - holdTime).toFixed(1)}...`;
+        if (holdTime >= 3) {
+          clearInterval(resetTimer);
+          reset();
+          resetBox.textContent = 'reset!';
+          setTimeout(() => resetBox.style.opacity = 0, 500);
         }
       }, 100);
     }
 
-    function resetHoldEnd() {
-      clearInterval(resetInterval);
+    function cancelResetHold() {
+      clearInterval(resetTimer);
       resetBox.style.opacity = 0;
     }
 
-    settingsIcon.addEventListener("click", () => {
-      settings.style.display = settings.style.display === "none" ? "flex" : "none";
+    window.addEventListener('keydown', e => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        toggle();
+      } else if (e.key.toLowerCase() === 'r') {
+        e.preventDefault();
+        startResetHold();
+      }
     });
 
-    document.querySelectorAll('input[name="decimals"]').forEach(input => {
-      input.addEventListener("change", e => {
+    window.addEventListener('keyup', e => {
+      if (e.key.toLowerCase() === 'r') {
+        cancelResetHold();
+      }
+    });
+
+    settingsIcon.addEventListener('click', () => {
+      settings.style.display = settings.style.display === 'none' ? 'flex' : 'none';
+    });
+
+    document.querySelectorAll('input[name="decimals"]').forEach(radio => {
+      radio.addEventListener('change', e => {
         decimals = parseInt(e.target.value);
-        updateDisplay();
+        render();
       });
     });
 
-    document.addEventListener("keydown", e => {
-      if (e.code === "Space") {
-        e.preventDefault();
-        startStop();
-      } else if (e.code === "KeyR") {
-        resetHoldStart();
-      }
-    });
-
-    document.addEventListener("keyup", e => {
-      if (e.code === "KeyR") {
-        resetHoldEnd();
-      }
-    });
-
-    updateDisplay();
+    render();
   </script>
 </body>
 </html>
