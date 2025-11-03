@@ -1,219 +1,355 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stopwatch</title>
-  <style>
-    @font-face {
-      font-family: 'ScienceGothic';
-      src: url('fonts/ScienceGothic[CTRS,slnt,wdth,wght].ttf') format('truetype');
-    }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Stopwatch</title>
+<style>
+  @font-face {
+    font-family: 'ScienceGothic';
+    src: url('fonts/ScienceGothic[CTRS,slnt,wdth,wght].ttf') format('truetype');
+    font-display: swap;
+  }
 
-    html, body {
-      height: 100%;
-      margin: 0;
-      background: black;
-      color: white;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-family: 'ScienceGothic', sans-serif;
-      user-select: none;
-      text-transform: uppercase;
-    }
+  :root{
+    --bg:#000;
+    --fg:#fff;
+    --panel: rgba(255,255,255,0.08);
+    --muted: rgba(255,255,255,0.75);
+  }
 
-    #stopwatch {
-      font-size: clamp(60px, 10vw, 150px);
-      letter-spacing: -0.02em;
-      font-variant-numeric: tabular-nums;
-      font-variation-settings: "wght" 350, "wdth" 100;
-      line-height: 0.9;
-    }
+  html,body{
+    height:100%;
+    margin:0;
+    background:var(--bg);
+    color:var(--fg);
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    font-family: 'ScienceGothic', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    text-transform: uppercase;
+  }
 
-    #instruction {
-      font-size: 12px;
-      letter-spacing: 0.12em;
-      margin-top: 10px;
-      font-weight: 400;
-      opacity: 0.75;
-      font-family: 'ScienceGothic', sans-serif;
-    }
+  /* center */
+  .center-wrap{
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    pointer-events:auto;
+  }
 
-    #resetBox {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      padding: 12px 20px;
-      font-size: 16px;
-      opacity: 0;
-      transition: opacity 0.4s ease;
-      font-family: 'ScienceGothic', sans-serif;
-    }
+  .time {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+    font-size: clamp(60px, 12vw, 150px);
+    line-height:0.9;
+    letter-spacing: -0.02em;
+    margin:0;
+    padding:0;
+    text-align:center;
+    font-variation-settings: "wght" 350, "wdth" 100;
+  }
 
-    #resetBox.show {
-      opacity: 1;
-    }
+  .hint {
+    margin-top:8px;
+    font-size:12px;
+    color:var(--muted);
+    font-weight:600;
+    letter-spacing:0.12em;
+    text-align:center;
+  }
 
-    #settings {
-      position: absolute;
-      bottom: 20px;
-      right: 20px;
-      font-size: 22px;
-      cursor: pointer;
-      transition: opacity 0.2s ease;
-      opacity: 0.6;
-    }
+  .reset-box{
+    position:fixed;
+    top:20px;
+    right:20px;
+    background:var(--panel);
+    border-radius:12px;
+    padding:10px 14px;
+    font-size:14px;
+    font-weight:600;
+    letter-spacing:0.04em;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .35s ease;
+  }
+  .reset-box.show{ opacity:1; pointer-events:none; }
 
-    #settings:hover {
-      opacity: 1;
-    }
+  .settings {
+    position:fixed;
+    bottom:16px;
+    right:16px;
+    width:44px;
+    height:44px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--panel);
+    border-radius:999px;
+    cursor:pointer;
+    user-select:none;
+    z-index:100;
+  }
 
-    #settingsMenu {
-      position: absolute;
-      bottom: 60px;
-      right: 20px;
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 10px;
-      padding: 12px 16px;
-      display: none;
-      flex-direction: column;
-      gap: 8px;
-      font-size: 13px;
-      min-width: 130px;
-      font-family: 'ScienceGothic', sans-serif;
-    }
+  .settings-menu{
+    position:fixed;
+    right:16px;
+    bottom:16px;
+    width:170px;
+    border-radius:12px;
+    overflow:hidden;
+    transform: translateY(120px);
+    transition: transform .28s cubic-bezier(.2,.9,.3,1), opacity .28s;
+    opacity:0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+    backdrop-filter: blur(6px);
+    z-index:99;
+    padding:8px;
+    box-sizing:border-box;
+  }
+  .settings-menu.open{
+    transform: translateY(-78px);
+    opacity:1;
+  }
+  .settings-option{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:8px;
+    cursor:pointer;
+  }
+  .settings-option input{ accent-color:#fff; }
+  .settings-option label{ font-size:13px; user-select:none; }
 
-    .settings-option {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-    }
-
-    .settings-option input {
-      accent-color: white;
-      cursor: pointer;
-    }
-
-    .settings-option label {
-      cursor: pointer;
-      user-select: none;
-    }
-  </style>
+  ::selection{ background: rgba(255,255,255,0.06); }
+</style>
 </head>
 <body>
-  <div id="stopwatch">0:00.0</div>
-  <div id="instruction">PRESS SPACE TO START/STOP • HOLD R TO RESET</div>
-  <div id="resetBox">RESETTING IN 3.0S</div>
-  <div id="settings">⚙️</div>
+  <div class="reset-box" id="resetBox">RESETTING IN 3</div>
 
-  <div id="settingsMenu">
+  <div class="center-wrap">
+    <div id="timeDisplay" class="time">0:00.0</div>
+    <div class="hint" id="hint">PRESS SPACE TO START/STOP • HOLD SPACE TO FREEZE • HOLD R TO RESET</div>
+  </div>
+
+  <div class="settings" id="settingsBtn" title="Settings">⚙️</div>
+
+  <div class="settings-menu" id="settingsMenu" aria-hidden="true">
     <div class="settings-option">
-      <input type="radio" name="decimals" id="dec1" value="1" checked>
-      <label for="dec1">1 DECIMAL</label>
+      <input type="radio" id="d1" name="dec" value="1" checked>
+      <label for="d1">1 DECIMAL</label>
     </div>
     <div class="settings-option">
-      <input type="radio" name="decimals" id="dec2" value="2">
-      <label for="dec2">2 DECIMALS</label>
+      <input type="radio" id="d2" name="dec" value="2">
+      <label for="d2">2 DECIMALS</label>
     </div>
     <div class="settings-option">
-      <input type="radio" name="decimals" id="dec3" value="3">
-      <label for="dec3">3 DECIMALS</label>
+      <input type="radio" id="d3" name="dec" value="3">
+      <label for="d3">3 DECIMALS</label>
     </div>
   </div>
 
-  <script>
-    const display = document.getElementById('stopwatch');
-    const resetBox = document.getElementById('resetBox');
-    const settingsBtn = document.getElementById('settings');
-    const settingsMenu = document.getElementById('settingsMenu');
-    let startTime = 0;
-    let running = false;
-    let timerInterval;
-    let decimals = 1;
-    let resetCountdown;
-    let resetHoldTime = 3;
+<script>
+(() => {
+  const timeDisplay = document.getElementById('timeDisplay');
+  const resetBox = document.getElementById('resetBox');
+  const settingsBtn = document.getElementById('settingsBtn');
+  const settingsMenu = document.getElementById('settingsMenu');
+  const radios = document.querySelectorAll('input[name="dec"]');
 
-    function formatTime(ms) {
-      const totalMilliseconds = Math.floor(ms);
-      const totalSeconds = Math.floor(totalMilliseconds / 1000);
-      const minutes = Math.floor(totalSeconds / 60);
-      const seconds = totalSeconds % 60;
-      const fraction = Math.floor((totalMilliseconds % 1000) / Math.pow(10, 3 - decimals));
-      return `${minutes}:${String(seconds).padStart(2, '0')}.${fraction.toString().padStart(decimals, '0')}`;
+  // state
+  let running = false;
+  let frozen = false;
+  let startTs = 0;       // performance.now when started
+  let elapsedMs = 0;     // accumulated ms when stopped
+  let raf = null;
+
+  // reset hold
+  const RESET_SECONDS = 3;
+  let resetInterval = null;
+  let resetRemaining = RESET_SECONDS;
+
+  // decimals
+  let decimals = 1;
+
+  // formatting
+  function formatTime(ms) {
+    const totalMs = Math.max(0, Math.floor(ms));
+    const totalSeconds = Math.floor(totalMs / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const fractionMs = totalMs % 1000;
+    const scaled = Math.floor(fractionMs / Math.pow(10, 3 - decimals));
+    const fracStr = String(scaled).padStart(decimals, '0');
+    return `${minutes}:${String(seconds).padStart(2,'0')}.${fracStr}`;
+  }
+
+  function currentElapsed() {
+    if (running && !frozen) {
+      return elapsedMs + (performance.now() - startTs);
     }
+    return elapsedMs;
+  }
 
-    function updateDisplay(time) {
-      display.textContent = formatTime(time);
-    }
+  // render loop (only needed for running but we use RAF to be smooth)
+  function render() {
+    timeDisplay.textContent = formatTime(currentElapsed());
+    raf = requestAnimationFrame(render);
+  }
 
-    function startStopwatch() {
-      startTime = Date.now() - parseFloat(display.dataset.elapsed || 0);
-      running = true;
-      timerInterval = setInterval(() => {
-        updateDisplay(Date.now() - startTime);
-      }, 10);
-    }
+  function ensureRAF() {
+    if (!raf) raf = requestAnimationFrame(render);
+  }
+  function stopRAF() {
+    if (raf) { cancelAnimationFrame(raf); raf = null; }
+  }
 
-    function stopStopwatch() {
-      running = false;
-      clearInterval(timerInterval);
-      display.dataset.elapsed = Date.now() - startTime;
-    }
+  function startTimer() {
+    if (running) return;
+    running = true;
+    startTs = performance.now();
+    ensureRAF();
+  }
 
-    function resetStopwatch() {
-      stopStopwatch();
-      updateDisplay(0);
-      display.dataset.elapsed = 0;
-    }
+  function stopTimer() {
+    if (!running) return;
+    // stash elapsed
+    elapsedMs += performance.now() - startTs;
+    running = false;
+    // keep display as-is (we keep RAF running to show e.g. reset box if needed)
+  }
 
-    document.body.addEventListener('keydown', (e) => {
-      if (e.code === 'Space') {
-        e.preventDefault();
-        if (running) stopStopwatch();
-        else startStopwatch();
+  function resetNow() {
+    running = false;
+    frozen = false;
+    elapsedMs = 0;
+    timeDisplay.textContent = formatTime(0);
+    // show reset then hide
+    resetBox.textContent = 'RESET!';
+    setTimeout(()=> resetBox.classList.remove('show'), 450);
+  }
+
+  function startResetCountdown() {
+    if (resetInterval) return;
+    resetRemaining = RESET_SECONDS;
+    resetBox.textContent = `RESETTING IN ${resetRemaining}`;
+    resetBox.classList.add('show');
+    // make sure UI updates while counting
+    ensureRAF();
+    resetInterval = setInterval(() => {
+      resetRemaining--;
+      if (resetRemaining > 0) {
+        resetBox.textContent = `RESETTING IN ${resetRemaining}`;
+      } else {
+        clearInterval(resetInterval);
+        resetInterval = null;
+        resetNow();
       }
-      if (e.code === 'KeyR') {
-        let timeLeft = resetHoldTime;
-        resetBox.textContent = `RESETTING IN ${timeLeft.toFixed(1)}S`;
-        resetBox.classList.add('show');
-        resetCountdown = setInterval(() => {
-          timeLeft -= 0.1;
-          if (timeLeft <= 0) {
-            resetStopwatch();
-            clearInterval(resetCountdown);
-            resetBox.textContent = `RESETTING IN 0.0S`;
-            setTimeout(() => resetBox.classList.remove('show'), 600);
-          } else {
-            resetBox.textContent = `RESETTING IN ${timeLeft.toFixed(1)}S`;
-          }
-        }, 100);
+    }, 1000);
+  }
+
+  function cancelResetCountdown() {
+    if (resetInterval) {
+      clearInterval(resetInterval);
+      resetInterval = null;
+    }
+    resetBox.classList.remove('show');
+  }
+
+  // keyboard handlers
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+      e.preventDefault();
+      if (!running) {
+        // quick press should start
+        startTimer();
+      } else {
+        // if running, holding space freezes
+        frozen = true;
       }
-    });
+    } else if (e.code === 'KeyR') {
+      e.preventDefault();
+      startResetCountdown();
+    }
+  }, {passive:false});
 
-    document.body.addEventListener('keyup', (e) => {
-      if (e.code === 'KeyR') {
-        clearInterval(resetCountdown);
-        resetBox.classList.remove('show');
+  window.addEventListener('keyup', (e) => {
+    if (e.code === 'Space') {
+      e.preventDefault();
+      if (frozen) {
+        // unfreeze and continue
+        frozen = false;
+        // set startTs so continuation is smooth
+        startTs = performance.now();
+      } else {
+        // quick tap release: toggle stop/start behavior
+        if (running) {
+          stopTimer();
+        } else {
+          startTimer();
+        }
       }
-    });
+    } else if (e.code === 'KeyR') {
+      cancelResetCountdown();
+    }
+  });
 
-    settingsBtn.addEventListener('click', () => {
-      settingsMenu.style.display = settingsMenu.style.display === 'flex' ? 'none' : 'flex';
-    });
+  // touch handlers (tap = toggle, long hold => start reset countdown)
+  let touchStart = 0;
+  let touchHoldT = null;
+  window.addEventListener('touchstart', (ev) => {
+    ev.preventDefault();
+    touchStart = Date.now();
+    touchHoldT = setTimeout(() => {
+      startResetCountdown();
+      touchHoldT = null;
+    }, 500);
+  }, {passive:false});
 
-    document.querySelectorAll('input[name="decimals"]').forEach(radio => {
-      radio.addEventListener('change', () => {
-        decimals = parseInt(radio.value);
-        updateDisplay((Date.now() - startTime) || 0);
-      });
-    });
+  window.addEventListener('touchend', (ev) => {
+    ev.preventDefault();
+    const dur = Date.now() - touchStart;
+    if (touchHoldT) {
+      clearTimeout(touchHoldT);
+      touchHoldT = null;
+    }
+    if (dur < 500) {
+      // short tap
+      if (!running) startTimer();
+      else {
+        // if running & not frozen -> stop
+        if (!frozen) stopTimer();
+      }
+    } else {
+      // long touch finished - cancel if countdown didn't finish
+      cancelResetCountdown();
+    }
+  }, {passive:false});
 
-    updateDisplay(0);
-  </script>
+  // settings toggle
+  settingsBtn.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    settingsMenu.classList.toggle('open');
+  });
+
+  // click outside closes settings
+  window.addEventListener('click', (ev) => {
+    if (!settingsMenu.contains(ev.target) && !settingsBtn.contains(ev.target)) {
+      settingsMenu.classList.remove('open');
+    }
+  });
+
+  // radio change - update decimals cleanly using currentElapsed()
+  radios.forEach(r => r.addEventListener('change', () => {
+    decimals = parseInt(r.value, 10);
+    // re-render immediately using current elapsed
+    timeDisplay.textContent = formatTime(currentElapsed());
+  }));
+
+  // initial render
+  timeDisplay.textContent = formatTime(0);
+})();
+</script>
 </body>
 </html>
